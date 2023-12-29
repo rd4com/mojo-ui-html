@@ -53,20 +53,26 @@ def main():
     boolval = True
     GUI = Server()
     POS = Position(1,1)
-    POS2 = Position(1,128)
-    
+    POS2 = Position(1,350)
+
+    combovalues = DynamicVector[String]()
+    for i in range(5): combovalues.push_back("Value "+str(i))
+    selection = 1
+
     while GUI.Event():
         with GUI.Window("Debug window",POS):
             GUI.Text("Hello world 🔥")
             if GUI.Button("Button"): val = 50 
             if GUI.Slider("Slider",val): 
                 print("Changed")
-            GUI.TextInput("Edit",txt)   #spaces not supported yet
-            GUI.ComboBox("ComboBox")    #require more work (only CSS)
+            GUI.TextInput("Edit",txt)                       #spaces not supported yet
+            GUI.ComboBox("ComboBox",combovalues,selection)
             GUI.Text("value:"+txt)
             GUI.Toggle(boolval,"Checkbox")
         with GUI.Window("Test",POS2): 
             GUI.Text(txt)
+            if selection < len(combovalues):                #manual bound check for now
+                GUI.Text("Selected:" + combovalues[selection])
 ```
 
 &nbsp;
@@ -89,7 +95,9 @@ def main():
   - Positions saved on the mojo side in user defined values (Position(0,0))
 - Toggle widget (similar to checkbox)
    - Mutate a bool passed as argument (inout)
-- ComboBox (only the CSS for now)
+- ComboBox
+   - ID is the inout address of the selection value
+   - The selection value is the index of the selected value in the DynamicVector of selections
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
 

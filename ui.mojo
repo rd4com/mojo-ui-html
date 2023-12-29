@@ -17,6 +17,9 @@ alias JS = """<script>
                 if (event.target.dataset.change == "true"){
                     window.location.href = "/"+evt+"_"+id+"/"+event.target.value
                 }
+                 if (event.target.dataset.combobox == "true"){
+                    window.location.href = "/combobox_"+id+"/"+event.target.selectedIndex
+                }
             }
             if (evt == "input") {
                 if (event.target.dataset.hasOwnProperty('input')){
@@ -160,12 +163,23 @@ struct Server:
         self.response = str(self.response)+"<input data-change='true' value='"+val+"'"+ focus +" type='text' style='"+Theme.TextInput+"'id='"+id+"'>"
         self.response = str(self.response)+"</div>"
     
-    def ComboBox(inout self,label:String=""):
+    def ComboBox(inout self,label:String,values:DynamicVector[String],inout selection:Int):
+        var tmp:Pointer[Int] = __get_lvalue_as_address(selection)
+        t = tmp.__as_index()
+        var id:String = str(t)
+        var tmp2 = "/combobox_"+id+"/"
+        if self.request and self.request[1].startswith(tmp2):    
+            selection = atol(str(self.request[1].split(tmp2)[1]))
+            self.SetNoneRequest()
+        
+
         self.response = str(self.response)+"<div style='"+Theme.ComboBoxBox+"'>"
-        if label!="":
-            self.response = str(self.response)+"🔽<b>"+label+" </b>"
-        self.response = str(self.response)+"<select style='"+Theme.ComboBox+"'>"
-        self.response +=  "<option value='First'>First</option>"
+        self.response = str(self.response)+"🔽<b>"+label+" </b>"
+        self.response = str(self.response)+"<select data-combobox='true' style='"+Theme.ComboBox+"' id='" +id+"'>"
+        for s in range(len(values)):
+            var selected:String = ""
+            if s == selection : selected = "selected"
+            self.response +=  "<option "+ selected +" value='" + values[s] +"'>"+values[s]+"</option>"
         self.response += "</select>"
         self.response = str(self.response)+"</div>"
         
@@ -234,15 +248,22 @@ def main():
     GUI = Server() #GUI.request_interval_second = 0.05 for faster refreshes
     POS = Position(1,1)
     POS2 = Position(1,350)
-    
+
+    combovalues = DynamicVector[String]()
+    for i in range(5): combovalues.push_back("Value "+str(i))
+    selection = 1
+
     while GUI.Event():
         with GUI.Window("Debug window",POS):
             GUI.Text("Hello world 🔥")
             if GUI.Button("Button"): val = 50 
-            if GUI.Slider("Slider",val): print("Changed")
-            GUI.TextInput("Edit",txt)
-            GUI.ComboBox("ComboBox")
+            if GUI.Slider("Slider",val): 
+                print("Changed")
+            GUI.TextInput("Edit",txt)                       #spaces not supported yet
+            GUI.ComboBox("ComboBox",combovalues,selection)
             GUI.Text("value:"+txt)
             GUI.Toggle(boolval,"Checkbox")
         with GUI.Window("Test",POS2): 
             GUI.Text(txt)
+            if selection < len(combovalues):                #manual bound check for now
+                GUI.Text("Selected:" + combovalues[selection])
