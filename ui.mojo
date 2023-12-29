@@ -131,7 +131,9 @@ struct Server:
     def Window(inout self, name: String,inout pos:Position)->Window:
         let ptr:Pointer[PythonObject] = __get_lvalue_as_address(self.request)
         return Window(__get_lvalue_as_address(self.response), name,__get_lvalue_as_address(pos),ptr)
-    def Slider(inout self,label:String,inout val:Int):
+
+    def Slider(inout self,label:String,inout val:Int, min:Int = 0, max:Int = 100):
+        #Todo: if new_value > max: new_value = max, check if min<max 
         var tmp:Pointer[Int] = __get_lvalue_as_address(val)
         t = tmp.__as_index()
         var id:String = str(t)
@@ -141,7 +143,7 @@ struct Server:
             self.SetNoneRequest()
             retval=True
         self.response = str(self.response)+"<div style='"+Theme.SliderBox+"'><div><b>"+label+"</b> "+str(val)+"</div>"
-        self.response = str(self.response)+"<input data-change='true' type='range' min='1' max='100' value='"+str(val)+"' style='"+Theme.SliderSlider+"' id='"+id+"'>"
+        self.response = str(self.response)+"<input data-change='true' type='range' min='"+min+"' max='"+max+"' value='"+str(val)+"' style='"+Theme.SliderSlider+"' id='"+id+"'>"
         self.response = str(self.response)+"</div>"
         
         return retval

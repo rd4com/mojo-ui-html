@@ -89,6 +89,7 @@ def main():
   - return True on interaction
   - mutate the argument (passed as inout) automatically
   - supports click but not drag yet (the moving window event is triggered)
+  - min=0, max=100 keyword arguments
 - Windowing system
   - Moved by dragging! 🥳
   - Can be defined in a nested way: moving "main" will keep "nested" in relative position.
