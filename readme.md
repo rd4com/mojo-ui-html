@@ -101,6 +101,13 @@ def main():
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
 
+- Expressivity:
+  - Bold("Hello") -> **Hello**
+  - Digitize(153) -> 1️⃣5️⃣3️⃣
+  - Square.Green 🟩 and Circle.Yellow 🟡 (Blue, Red, Black, Purple, Brown, Orange, Green, Yellow, White)
+  - Accessibility.Info (Info ℹ️, Warning ⚠️, Success ✅)
+  - Arrow.Right (Up ⬆️, Down ⬇️, Right ➡️, Left ⬅️)
+
 &nbsp;
 
 ## Mechanism

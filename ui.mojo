@@ -52,12 +52,53 @@ function drop(e) {
     e.preventDefault();
 }
 </script>"""
+
+struct Accessibility:
+    alias Success:String = "✅"
+    alias Info:String = "ℹ️"
+    alias Warning: String = "⚠️"
+
+struct Circles:
+    alias Green: String = "🟢"
+    alias Red: String = "🔴"
+    alias Yellow:String = "🟡"
+    alias Black:String = "⚫"
+    alias Blue:String = "🔵"
+    alias Purple: String = "🟣"
+    alias White:String = "⚪"
+    alias Orange: String = "🟠"
+    alias Brown:String= "🟤"
+
+struct Squares:
+    alias Green: String = "🟩"
+    alias Red: String = "🟥"
+    alias Yellow:String = "🟨"
+    alias Black:String = "⬛"
+    alias Blue:String = "🟦"
+    alias Purple: String = "🟪"
+    alias White:String = "⬜"
+    alias Orange: String = "🟧"
+    alias Brown:String= "🟫"
+
+
+struct Arrow:
+    alias Up: String = "⬆️"
+    alias Down:String = "⬇️"
+    alias Left:String = "⬅️"
+    alias Right:String = "➡️"
+
 @value
 struct Position:
     var x:Int
     var y:Int
+
 @value
 struct Server:
+    alias Circle = Circles
+    alias Square = Squares
+    alias Arrow = Arrow
+    alias Accessibility = Accessibility
+
     var server: PythonObject
     var client: PythonObject
     var response: PythonObject
@@ -184,6 +225,16 @@ struct Server:
             self.response +=  "<option "+ selected +" value='" + values[s] +"'>"+values[s]+"</option>"
         self.response += "</select>"
         self.response = str(self.response)+"</div>"
+
+    def Bold(inout self, t:String)->String: return "<b>"+t+"</b>"
+
+    def Digitize(inout self, number: Int)->String :
+        var digits = StaticTuple[10,StringLiteral]("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
+        tmp = str(number)
+        var res:String = ""
+        for i in range(len(tmp)):
+            res+=digits[(ord(tmp[i])-48)]
+        return(res)
         
 @value
 struct Window:
@@ -198,7 +249,7 @@ struct Window:
             var req = __get_address_as_lvalue(self.request.address)
             if req and req[1].startswith("/window_"+id): 
                 var val = req[1].split("/window_"+id)[1].split("/")
-                __get_address_as_lvalue(self.pos.address).x += atol(str(val[1]))
+                __get_address_as_lvalue(self.pos.address).x += atol(str(val[1])) #todo try: block for atol
                 __get_address_as_lvalue(self.pos.address).y += atol(str(val[2]))
                 __get_address_as_lvalue(self.request.address) = PythonObject(None) #possibly not good
             positions += "left:"+str(__get_address_as_lvalue(self.pos.address).x)+"px;"
@@ -206,12 +257,12 @@ struct Window:
             __get_address_as_lvalue(self.content.address) += "<div draggable='true' ondragstart='drag(event)' style='" +Theme.Window+positions+ "' id='"+id +"'>"
             __get_address_as_lvalue(self.content.address) += "<div style='" + Theme.WindowTitle + "'>➖ ❌ " + self.name + "&nbsp;</div>"
             __get_address_as_lvalue(self.content.address) += "<div style='" + Theme.WindowContent +"'>"
-        except e: print(e)
+        except e: print("Window __enter__ widget:"+str(e))
     fn __exit__( self): self.close()
     fn close(self) -> Bool:
         try:
             __get_address_as_lvalue(self.content.address) += "</div></div>"
-        except e: print(e) 
+        except e: print("Window close() widget:"+str(e)) 
         return True
     fn __exit__( self, err:Error)->Bool: return self.close()
 
@@ -230,6 +281,8 @@ struct MojoTheme:
     alias Window = "border-width: 4px;border-color: black;border-style: solid;;max-width: fit-content;"
     alias WindowContent= "padding:1px;background-color: white"
     alias WindowTitle= "background-color: rgb(255,127,0);color: white;border-bottom: 4px solid black;"
+    alias DigitWheel = """border: 4px solid black;color: black;max-width: fit-content;"""
+    
     @staticmethod
     def Css(BaseTextSize:Int=200)->String:
         var res:String = "body {"
@@ -250,6 +303,7 @@ def main():
     GUI = Server() #GUI.request_interval_second = 0.05 for faster refreshes
     POS = Position(1,1)
     POS2 = Position(1,350)
+    POS3 = Position(32,512)
 
     combovalues = DynamicVector[String]()
     for i in range(5): combovalues.push_back("Value "+str(i))
@@ -265,7 +319,13 @@ def main():
             GUI.ComboBox("ComboBox",combovalues,selection)
             GUI.Text("value:"+txt)
             GUI.Toggle(boolval,"Checkbox")
+        
         with GUI.Window("Test",POS2): 
             GUI.Text(txt)
             if selection < len(combovalues):                #manual bound check for now
                 GUI.Text("Selected:" + combovalues[selection])
+        
+        with GUI.Window("Fun features",POS3):
+            GUI.Text(GUI.Circle.Green + " Green circle")
+            GUI.Text(GUI.Square.Blue + " Blue square")
+            GUI.Text(GUI.Accessibility.Info + " Some icons")
