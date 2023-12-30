@@ -9,8 +9,7 @@
 
 - ### ⏳ not beginner-friendly yet (will be in the future❤️‍🔥) 
 
-- ### Only for development and discussion purposes 
-- ### Not ready for use yet 
+- ### Not ready for use yet, feedbacks, ideas and contributions welcome!
 
 
 
