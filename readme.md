@@ -23,7 +23,7 @@
 &nbsp;
 
 ## ⚠️ 
-- Server on ```localhost:8000```
+- Server on ```127.0.0.1:8000```
 
 - Dom generated from the content of values
   
