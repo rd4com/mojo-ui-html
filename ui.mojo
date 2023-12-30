@@ -121,7 +121,7 @@ struct Server:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((host, port))
-        self.server.setblocking(0)
+        #self.server.setblocking(0) #Blocking by default
         self.server.listen(1)
         print("http://"+str(host)+":"+port)
     fn __del__(owned self):
@@ -300,7 +300,9 @@ def main():
     val = 50
     txt = String("Some value")
     boolval = True
+    
     GUI = Server() #GUI.request_interval_second = 0.05 for faster refreshes
+    
     POS = Position(1,1)
     POS2 = Position(1,350)
     POS3 = Position(32,512)

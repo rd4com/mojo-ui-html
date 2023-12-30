@@ -184,5 +184,14 @@ Anything can be used to generate an id, require more thinking !
   - solved by generating serialized dom as nested nodes, and "morphing" it
 - More
 
+&nbsp;
+---
+
+&nbsp;
+
+### Blocking loop by default
+- More user-friendly like that until better solution!
+- Can be manually re-configured if needed
+
 
 
