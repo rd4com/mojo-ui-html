@@ -117,8 +117,8 @@ def main():
 
 - Expressivity:
   - Bold("Hello") -> **Hello**
-  - Highlight("Hello") -> <mark>Hello</mark>
-  - Small("Hello") -> <small>Hello</small>
+  - Highlight("Hello")
+  - Small("Hello")
   - Digitize(153) -> 1️⃣5️⃣3️⃣
   - Square.Green 🟩 and Circle.Yellow 🟡 (Blue, Red, Black, Purple, Brown, Orange, Green, Yellow, White)
   - Accessibility.Info (Info ℹ️, Warning ⚠️, Success ✅)
