@@ -53,6 +53,8 @@ function drop(e) {
 }
 </script>"""
 
+
+
 struct Accessibility:
     alias Success:String = "✅"
     alias Info:String = "ℹ️"
@@ -92,8 +94,9 @@ struct Position:
     var x:Int
     var y:Int
 
+#Todo: parameter of type GuiConfig {non_blocking:Bool = False, more}
 @value
-struct Server:
+struct Server[exit_if_request_not_from_localhost:Bool = True]:
     alias Circle = Circles
     alias Square = Squares
     alias Arrow = Arrow
@@ -134,6 +137,11 @@ struct Server:
         self.response = PythonObject('HTTP/1.0 200 OK\n\n')+"<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head>"+JS+"<style>"+Theme.Css()+"</style><meta charset='UTF-8'></head><body>"
         try: #if error is raised in the block, no request or an error
             self.client = self.server.accept()
+            @parameter
+            if exit_if_request_not_from_localhost:
+                if self.client[1][0] != '127.0.0.1': 
+                    print("Exit, request from: "+str(self.client[1][0]))
+                    return False
             self.request = self.client[0].recv(1024).decode()
             self.request = self.request.split('\n')[0].split(" ")
            #print(self.request) # for debug
@@ -225,8 +233,31 @@ struct Server:
             self.response +=  "<option "+ selected +" value='" + values[s] +"'>"+values[s]+"</option>"
         self.response += "</select>"
         self.response = str(self.response)+"</div>"
+    
+    def ComboBox(inout self,label:String,inout selection:Int,*selections:StringLiteral):
+        var tmp:Pointer[Int] = __get_lvalue_as_address(selection)
+        t = tmp.__as_index()
+        var id:String = str(t)
+        var tmp2 = "/combobox_"+id+"/"
+        if self.request and self.request[1].startswith(tmp2):    
+            selection = atol(str(self.request[1].split(tmp2)[1]))
+            self.SetNoneRequest()
+        
+
+        self.response = str(self.response)+"<div style='"+Theme.ComboBoxBox+"'>"
+        self.response = str(self.response)+"🔽<b>"+label+" </b>"
+        self.response = str(self.response)+"<select data-combobox='true' style='"+Theme.ComboBox+"' id='" +id+"'>"
+        for s in range(len(selections)):
+            var selected:String = ""
+            if s == selection : selected = "selected"
+            self.response +=  "<option "+ selected +" value='" + selections[s] +"'>"+selections[s]+"</option>"
+        self.response += "</select>"
+        self.response = str(self.response)+"</div>"
+
 
     def Bold(inout self, t:String)->String: return "<b>"+t+"</b>"
+    def Highlight(inout self, t:String)->String: return "<mark>"+t+"</mark>"
+    def Small(inout self, t:String)->String: return "<small>"+t+"</small>"
 
     def Digitize(inout self, number: Int)->String :
         var digits = StaticTuple[10,StringLiteral]("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
@@ -235,7 +266,26 @@ struct Server:
         for i in range(len(tmp)):
             res+=digits[(ord(tmp[i])-48)]
         return(res)
-        
+
+    def Collapsible(inout self,title:String,color:String = "whitesmoke")->Collapsible: return Collapsible(title,__get_lvalue_as_address(self.response),color)
+
+@value
+struct Collapsible:
+    var title: String
+    var reponse: Pointer[PythonObject]
+    var color: String
+    fn __enter__(self):
+        try:
+            __get_address_as_lvalue(self.reponse.address) += "<details><summary style='background-color:"+ self.color +";'>"+self.title+"</summary>"
+        except e: print("Window __enter__ widget:"+str(e))
+    fn __exit__( self): self.close()
+    fn close(self) -> Bool:
+        try:
+            __get_address_as_lvalue(self.reponse.address) += "</details>"
+        except e: print("Error Collapsible() widget:"+str(e)) 
+        return True
+    fn __exit__( self, err:Error)->Bool: return self.close()
+
 @value
 struct Window:
     var content: Pointer[PythonObject]
@@ -294,6 +344,7 @@ struct MojoTheme:
         res += "background: linear-gradient(0deg, rgba(255,255,0,1) 0%, rgba(255,255,0,1) 15%, rgba(255,0,0,1) 100%);"      
         res += "}"
         res += "html {min-height: 100%;}"
+
         return res
 
 def main():
@@ -331,3 +382,8 @@ def main():
             GUI.Text(GUI.Circle.Green + " Green circle")
             GUI.Text(GUI.Square.Blue + " Blue square")
             GUI.Text(GUI.Accessibility.Info + " Some icons")
+            GUI.Text(GUI.Bold("Bold() ")+GUI.Highlight("Highlight()"))
+            GUI.Text(GUI.Small("small") + " text")
+
+            with GUI.Collapsible("Collapsible()"):
+                GUI.Text("Content")

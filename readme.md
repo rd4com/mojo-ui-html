@@ -33,6 +33,13 @@
 - If the widget id is the address of a value, two input widgets of the same value will trigger twice (need more thinking for solution)
 
 - ```TextInput()``` do not support empty spaces yet, it is because the url will add ```%20``` to it!
+
+- Blocking loop by default (can be manually re-configured if needed)
+- Exit loop if request from other than "127.0.0.1" by default 
+  - Just an additional safeguard, not been tested! 
+  - Can be re-configured if needed (Bool)
+
+
 - Probably more
 
 &nbsp;
@@ -98,11 +105,20 @@ def main():
 - ComboBox
    - ID is the inout address of the selection value
    - The selection value is the index of the selected value in the DynamicVector of selections
+  - VariadicList support ! 🔥
+    - ```ComboBox("Simple combobox",selection,"one","two","three")```
+
+
+- Collapsible <mark>NEW</mak>
+  - Implemented as a with block
+
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
 
 - Expressivity:
   - Bold("Hello") -> **Hello**
+  - Highlight("Hello") -> <mark>Hello</mark>
+  - Small("Hello") -> <small>Hello</small>
   - Digitize(153) -> 1️⃣5️⃣3️⃣
   - Square.Green 🟩 and Circle.Yellow 🟡 (Blue, Red, Black, Purple, Brown, Orange, Green, Yellow, White)
   - Accessibility.Info (Info ℹ️, Warning ⚠️, Success ✅)
@@ -142,12 +158,13 @@ Anything can be used to generate an id, require more thinking !
 - Use a socket as PythonObject for now
 - To make it platform agnostic and ready to runs anywhere with little changes.
 
-### 🛞 Non blocking event loop
+### 🛞 Non blocking event loop (default mode: blocking)
 - Usecase: if no request/event, custom user defined calculations on multiple workers.
-- For now, manually slowed down by a call to the time.sleep()
+- Additionally, slowed down by a call to the time.sleep()
+
 ### 🏕️ Immediate mode vs retained
 - Works inside an explicitely user-defined loop
-  - the user choose what should happen when there are no events.
+  - the user choose what should happen when there are no events. (not implemented yet)
 - The full dom is re-generated after each event 
 ### 🎨 CSS and HTML
 - Interesting features:
@@ -185,13 +202,9 @@ Anything can be used to generate an id, require more thinking !
 - More
 
 &nbsp;
----
 
-&nbsp;
 
-### Blocking loop by default
-- More user-friendly like that until better solution!
-- Can be manually re-configured if needed
+
 
 
 
