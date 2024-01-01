@@ -109,7 +109,7 @@ def main():
     - ```ComboBox("Simple combobox",selection,"one","two","three")```
 
 
-- Collapsible <mark>NEW</mak>
+- Collapsible 🆕
   - Implemented as a with block
 
 - Add html manually:
