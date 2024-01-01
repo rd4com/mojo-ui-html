@@ -112,6 +112,15 @@ def main():
 - Collapsible 🆕
   - Implemented as a with block
 
+- TextChoice 🆕
+  - Inout string to store the selected value 
+  - Available choices as a variadic list
+  - ```TextChoice("Label", selected, "First", "Second")```
+
+- Ticker 
+  - Cycle left (⬅️♾️) in an area of a specifig width (200 pixels by default).
+  - ```Ticker("Emojis are supported",width=64)```
+
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
 

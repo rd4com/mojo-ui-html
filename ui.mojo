@@ -9,9 +9,10 @@ alias JS = """<script>
             if (evt == "click") {
                 if (event.target.dataset.click == "true"){
                     window.location.href = "/"+evt+"_"+id
-                } else {
-                    
                 }
+                if (event.target.dataset.hasOwnProperty('textchoice')){
+                    window.location.href = event.target.dataset.textchoice
+                } 
             }
             if (evt == "change") {
                 if (event.target.dataset.change == "true"){
@@ -254,11 +255,36 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
         self.response += "</select>"
         self.response = str(self.response)+"</div>"
 
+    def TextChoice(inout self, label:String,inout selected: String, *selections:StringLiteral):
+        var tmp:Pointer[String] = __get_lvalue_as_address(selected)
+        t = tmp.__as_index()
+        var id:String = str(t)
+        var tmp2 = "/text_choice/"+id+"/"
+        if self.request and self.request[1].startswith(tmp2): 
+            try:
+                result = atol(str(self.request[1].split(tmp2)[1]))
+                if result >= len(selections): raise Error("Selected index >= len(selections)")
+                selected = String(selections[result])
+                self.SetNoneRequest()
+            except e: print("Error TextChoice widget: "+str(e))
+
+        self.response+="""
+            <fieldset style='border:4px dashed black;'>
+            <legend style='border:4px solid black;background-color: orange;'>""" + label + "</legend>"
+        for i in range(len(selections)):
+            var current = str(selections[i])
+            var url = "/text_choice/"+id+"/"+str(i)
+            if current == selected:
+                self.response+= "<span id='0' data-textchoice='"+url+"'>▪️<b>" + (current)+'</b></span><br>'
+            else:
+                self.response+= "<span id='0' data-textchoice='"+url+"'>▪️" + (current)+'</span><br>'
+        self.response += "</fieldset>"
 
     def Bold(inout self, t:String)->String: return "<b>"+t+"</b>"
     def Highlight(inout self, t:String)->String: return "<mark>"+t+"</mark>"
     def Small(inout self, t:String)->String: return "<small>"+t+"</small>"
-
+    def Ticker(inout self,t:String,width:Int=200):
+        self.response+="<div style='max-width: fit-content;margin:2px;width:"+str(width)+"px'><marquee>"+t+"</marquee></div>"
     def Digitize(inout self, number: Int)->String :
         var digits = StaticTuple[10,StringLiteral]("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
         tmp = str(number)
@@ -332,7 +358,6 @@ struct MojoTheme:
     alias WindowContent= "padding:1px;background-color: white"
     alias WindowTitle= "background-color: rgb(255,127,0);color: white;border-bottom: 4px solid black;"
     alias DigitWheel = """border: 4px solid black;color: black;max-width: fit-content;"""
-    
     @staticmethod
     def Css(BaseTextSize:Int=200)->String:
         var res:String = "body {"
@@ -344,19 +369,21 @@ struct MojoTheme:
         res += "background: linear-gradient(0deg, rgba(255,255,0,1) 0%, rgba(255,255,0,1) 15%, rgba(255,0,0,1) 100%);"      
         res += "}"
         res += "html {min-height: 100%;}"
-
+        
         return res
 
 def main():
     val = 50
     txt = String("Some value")
     boolval = True
-    
+    multichoicevalue = String("First")
+
     GUI = Server() #GUI.request_interval_second = 0.05 for faster refreshes
     
     POS = Position(1,1)
     POS2 = Position(1,350)
     POS3 = Position(32,512)
+    POS4 = Position(512,16)
 
     combovalues = DynamicVector[String]()
     for i in range(5): combovalues.push_back("Value "+str(i))
@@ -387,3 +414,7 @@ def main():
 
             with GUI.Collapsible("Collapsible()"):
                 GUI.Text("Content")
+
+        with GUI.Window("More widgets",POS4):
+            GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
+            GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
