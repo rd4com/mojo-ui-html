@@ -141,6 +141,18 @@ def main():
       for i in range(10): GUI.Text(str(i))
     ```
 
+- NewLine()
+
+- 🎨 ColorSelector
+  - One inout string argument (example: ```"#FF0000"```)
+
+- 🗓️ DateSelector
+  - ⚠️ not sure at all about the date format:
+    - Not same for every machine?
+    - Todo: unix timestamp
+  - One inout string argument (example: ```"2024-01-01"```)
+  
+
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
 

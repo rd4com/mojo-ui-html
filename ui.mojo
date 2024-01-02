@@ -21,6 +21,12 @@ alias JS = """<script>
                  if (event.target.dataset.combobox == "true"){
                     window.location.href = "/combobox_"+id+"/"+event.target.selectedIndex
                 }
+                if (event.target.dataset.colorselector == "true"){
+                    window.location.href = "/colorselector_"+id+"/"+event.target.value.substring(1)
+                }
+                if (event.target.dataset.dateselector == "true"){
+                    window.location.href = "/dateselector_"+id+"/"+event.target.value
+                }
             }
             if (evt == "input") {
                 if (event.target.dataset.hasOwnProperty('input')){
@@ -151,17 +157,21 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
             self.send_response=False 
         if self.request_interval_second != 0: sleep(self.request_interval_second)
         return True #todo: should return self.Running: bool to exit the loop
+    
     def SetNoneRequest(inout self):
         self.request = PythonObject(None) #None means event handled (if self.request == True)
+    
     @staticmethod
     def TagBuild(T:String,content:String,CSS:String="",id:String="")->String:
         return String("<"+T)+ " style='"+CSS+"' id='"+id+"'"+">" + content + "</"+T+">"
+    
     def Button(inout self,txt:String) ->Bool:
         self.response = str(self.response)+"<div data-click='true' style='"+Theme.Button+"' id='"+txt+"'"+">" + txt + "</div>"
         if self.request and self.request[1] == "/click_"+txt:
             self.SetNoneRequest()
             return True
         return False
+    
     def Toggle(inout self,inout val:Bool,label:String):
         var tmp:Pointer[Bool] = __get_lvalue_as_address(val)
         t = tmp.__as_index()
@@ -298,7 +308,34 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
     def Row(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"tr","border:4px solid black;") 
     def Cell(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"td","border:4px solid black;") 
     def ScrollableArea(inout self,height:Int=128)->ScrollableArea: return ScrollableArea(__get_lvalue_as_address(self.response),height)
-
+    
+    def ColorSelector(inout self, inout arg:String):
+        var tmp:Pointer[String] = __get_lvalue_as_address(arg)
+        var tmp2:Int = tmp.__as_index()
+        var id:String = str(tmp2)
+        var tmp3 = "/colorselector_"+id+"/"
+        if self.request and self.request[1].startswith(tmp3): 
+            try:
+                result = "#"+str(self.request[1].split(tmp3)[1])
+                arg=result
+                self.SetNoneRequest()
+            except e: print("Error ColorSelector widget: "+str(e))
+        self.response += "<input style='padding:0px;margin:4px;border:4px double black;' data-colorselector='true' type='color' id='"+id+"' value='"+arg+"'>" 
+    
+    #⚠️ not sure at all about the date format (see readme.md)
+    def DateSelector(inout self, inout arg:String):
+        var tmp:Pointer[String] = __get_lvalue_as_address(arg)
+        var tmp2:Int = tmp.__as_index()
+        var id:String = str(tmp2)
+        var tmp3 = "/dateselector_"+id+"/"
+        if self.request and self.request[1].startswith(tmp3): 
+            try:
+                result = str(self.request[1].split(tmp3)[1])
+                arg=result
+                self.SetNoneRequest()
+            except e: print("Error ColorSelector widget: "+str(e))
+        self.response += "<input style='margin:4px;border:0;' data-dateselector='true' type='date' id='"+id+"' value='"+arg+"'>" 
+    def NewLine(inout self): self.response+="</br>"
 @value
 struct ScrollableArea:
     var reponse: Pointer[PythonObject]
@@ -413,7 +450,8 @@ def main():
     txt = String("Some value")
     boolval = True
     multichoicevalue = String("First")
-
+    colorvalue = String("#FF0000")
+    datevalue = String("2024-01-01")
     GUI = Server() #GUI.request_interval_second = 0.05 for faster refreshes
     
     POS = Position(1,1)
@@ -462,6 +500,11 @@ def main():
                             with GUI.Cell():
                                 GUI.Text(str(r) + "," + str(c))
     
-            with GUI.ScrollableArea(50):
+            with GUI.ScrollableArea(123):
                 GUI.Text(GUI.Bold("ScrollableArea()"))
+                GUI.ColorSelector(colorvalue)
+                GUI.NewLine()
+                GUI.DateSelector(datevalue) #⚠️ not sure at all about the date format (see readme.md)
                 for i in range(10): GUI.Text(str(i))
+
+#redundent code might sometimes be necessary until switch from '/get' to XHR?
