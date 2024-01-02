@@ -57,9 +57,15 @@ def main():
     val = 50
     txt = String("Some value")
     boolval = True
-    GUI = Server()
+    multichoicevalue = String("First")
+    colorvalue = String("#FF0000")
+    datevalue = String("2024-01-01") #⚠️ format might depend on country?
+    GUI = Server() 
+    
     POS = Position(1,1)
     POS2 = Position(1,350)
+    POS3 = Position(32,512)
+    POS4 = Position(512,16)
 
     combovalues = DynamicVector[String]()
     for i in range(5): combovalues.push_back("Value "+str(i))
@@ -71,14 +77,44 @@ def main():
             if GUI.Button("Button"): val = 50 
             if GUI.Slider("Slider",val): 
                 print("Changed")
-            GUI.TextInput("Edit",txt)                       #spaces not supported yet
+            GUI.TextInput("Edit",txt) #spaces not supported yet 
             GUI.ComboBox("ComboBox",combovalues,selection)
             GUI.Text("value:"+txt)
             GUI.Toggle(boolval,"Checkbox")
+        
         with GUI.Window("Test",POS2): 
             GUI.Text(txt)
-            if selection < len(combovalues):                #manual bound check for now
+            if selection < len(combovalues): #manual bound check for now
                 GUI.Text("Selected:" + combovalues[selection])
+        
+        with GUI.Window("Fun features",POS3):
+            GUI.Text(GUI.Circle.Green + " Green circle")
+            GUI.Text(GUI.Square.Blue + " Blue square")
+            GUI.Text(GUI.Accessibility.Info + " Some icons")
+            GUI.Text(GUI.Bold("Bold() ")+GUI.Highlight("Highlight()"))
+            GUI.Text(GUI.Small("small") + " text")
+
+            with GUI.Collapsible("Collapsible()"):
+                GUI.Text("Content")
+
+        with GUI.Window("More widgets",POS4):
+            GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
+            GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
+
+            with GUI.Table():
+                for r in range(3):
+                    with GUI.Row():
+                        for c in range(3): 
+                            with GUI.Cell():
+                                GUI.Text(str(r) + "," + str(c))
+    
+            with GUI.ScrollableArea(123):
+                GUI.Text(GUI.Bold("ScrollableArea()"))
+                GUI.ColorSelector(colorvalue)
+                GUI.NewLine()
+                GUI.DateSelector(datevalue) #⚠️ format is unclear
+                # require way more thinking !
+                for i in range(10): GUI.Text(str(i))
 ```
 
 &nbsp;
