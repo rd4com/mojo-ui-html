@@ -294,7 +294,26 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
         return(res)
 
     def Collapsible(inout self,title:String,color:String = "whitesmoke")->Collapsible: return Collapsible(title,__get_lvalue_as_address(self.response),color)
+    def Table(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"table","border:4px solid black;")
+    def Row(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"tr","border:4px solid black;") 
+    def Cell(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"td","border:4px solid black;") 
+    def ScrollableArea(inout self,height:Int=128)->ScrollableArea: return ScrollableArea(__get_lvalue_as_address(self.response),height)
 
+@value
+struct ScrollableArea:
+    var reponse: Pointer[PythonObject]
+    var height: Int
+    fn __enter__(self):
+        try:
+            __get_address_as_lvalue(self.reponse.address) += "<div style='padding:4px;margin:4px; border: 4px dotted grey; overflow: scroll;height:"+str(self.height)+"px'>"
+        except e: print("Error ScrollableArea __enter__ widget:"+str(e))
+    fn __exit__( self): self.close()
+    fn close(self) -> Bool:
+        try:
+            __get_address_as_lvalue(self.reponse.address) += "</div>"
+        except e: print("Error ScrollableArea() widget:"+str(e)) 
+        return True
+    fn __exit__( self, err:Error)->Bool: return self.close()
 @value
 struct Collapsible:
     var title: String
@@ -311,6 +330,23 @@ struct Collapsible:
         except e: print("Error Collapsible() widget:"+str(e)) 
         return True
     fn __exit__( self, err:Error)->Bool: return self.close()
+
+@value
+struct WithTag:
+    var data: Pointer[PythonObject]
+    var tag:String
+    var style:String
+    fn __enter__(self):
+        try : __get_address_as_lvalue(self.data.address) += "<"+self.tag+" style='" + self.style + "'>"
+        except e: print(e)
+    fn __exit__( self): self.close()
+    fn __exit__( self, err:Error)->Bool: 
+        self.close()
+        print(err)
+        return False
+    fn close(self):
+        try : __get_address_as_lvalue(self.data.address) += "</"+self.tag+">"
+        except e: print(e)
 
 @value
 struct Window:
@@ -418,3 +454,14 @@ def main():
         with GUI.Window("More widgets",POS4):
             GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
             GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
+
+            with GUI.Table():
+                for r in range(3):
+                    with GUI.Row():
+                        for c in range(3): 
+                            with GUI.Cell():
+                                GUI.Text(str(r) + "," + str(c))
+    
+            with GUI.ScrollableArea(50):
+                GUI.Text(GUI.Bold("ScrollableArea()"))
+                for i in range(10): GUI.Text(str(i))

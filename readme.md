@@ -109,10 +109,10 @@ def main():
     - ```ComboBox("Simple combobox",selection,"one","two","three")```
 
 
-- Collapsible 🆕
+- Collapsible
   - Implemented as a with block
 
-- TextChoice 🆕
+- TextChoice
   - Inout string to store the selected value 
   - Available choices as a variadic list
   - ```TextChoice("Label", selected, "First", "Second")```
@@ -120,6 +120,26 @@ def main():
 - Ticker 
   - Cycle left (⬅️♾️) in an area of a specifig width (200 pixels by default).
   - ```Ticker("Emojis are supported",width=64)```
+
+- Table 
+  - Simple but it is a start! 
+  - Example:
+    ```python
+    with GUI.Table():
+      for r in range(3):
+          with GUI.Row():
+              for c in range(3): 
+                  with GUI.Cell():
+                      GUI.Text(str(r) + "," + str(c))   
+    ```
+
+- ScrollableArea 🔥
+  - ```height:Int = 128``` (pixels)
+  - Example:
+    ```python
+    with GUI.ScrollableArea(50):
+      for i in range(10): GUI.Text(str(i))
+    ```
 
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
