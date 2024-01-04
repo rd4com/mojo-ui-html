@@ -15,6 +15,12 @@ alias JS = """<script>
                 } 
             }
             if (evt == "change") {
+                if (event.target.dataset.textinput == "true"){
+                    const encoder = new TextEncoder();
+                    const utf8 = encoder.encode(event.target.value);
+                    console.log(utf8.join("-"))
+                    window.location.href = "/"+evt+"_"+id+"/"+utf8.join("-")
+                }
                 if (event.target.dataset.change == "true"){
                     window.location.href = "/"+evt+"_"+id+"/"+event.target.value
                 }
@@ -173,11 +179,8 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
         return False
     
     def Toggle(inout self,inout val:Bool,label:String):
-        var tmp:Pointer[Bool] = __get_lvalue_as_address(val)
-        t = tmp.__as_index()
         var val_repr = String("border-width: 4px;color: black;border-color: black;border-style: solid;background-color: red;max-width: fit-content;")
-        
-        var id:String = str(t)
+        var id:String = self._ID(val)
         if self.request and self.request[1] == "/click_"+id:
             val = not val
             self.SetNoneRequest()
@@ -194,9 +197,7 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
 
     def Slider(inout self,label:String,inout val:Int, min:Int = 0, max:Int = 100):
         #Todo: if new_value > max: new_value = max, check if min<max 
-        var tmp:Pointer[Int] = __get_lvalue_as_address(val)
-        t = tmp.__as_index()
-        var id:String = str(t)
+        var id:String = self._ID(val)
         var retval = False
         if self.request and self.request[1].startswith("/change_"+id):
             val = atol(str(self.request[1].split("/")[2])) #split by "/change_"+id ?
@@ -208,27 +209,30 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
         
         return retval
 
-    def TextInput(inout self,label:String,inout val:String):
+    def TextInput[maxlength:Int=32](inout self,label:String,inout val:String):
         var focus = ""
-        var tmp:Pointer[String] = __get_lvalue_as_address(val)
-        t = tmp.__as_index()
-        var id:String = str(t)
+        var id:String = self._ID(val)
         tmp2 = "/change_"+id+"/"
-
-        if self.request and self.request[1].startswith(tmp2):    
-            val = str(self.request[1].split(tmp2)[1])
+        if self.request and self.request[1] == tmp2:
+            val = "" #empty
             self.SetNoneRequest()
-
+        else:
+            if self.request and self.request[1].startswith(tmp2):  
+                tmp3 = str(self.request[1].split(tmp2)[1]).split("-") 
+                tmp4 = String("")
+                for i in range(len(tmp3)):
+                    tmp4+=chr(atol(tmp3[i]))
+                val = tmp4
+                self.SetNoneRequest()
+        
         self.response = str(self.response)+"<div style='"+Theme.TextInputBox+"'>"
         if label!="":
             self.response = str(self.response)+"<b>"+label+" </b>"
-        self.response = str(self.response)+"<input data-change='true' value='"+val+"'"+ focus +" type='text' style='"+Theme.TextInput+"'id='"+id+"'>"
+        self.response = str(self.response)+"<input maxlength='"+str(maxlength)+"' data-textinput='true' value='"+val+"'"+ focus +" type='text' style='"+Theme.TextInput+"'id='"+id+"'>"
         self.response = str(self.response)+"</div>"
     
     def ComboBox(inout self,label:String,values:DynamicVector[String],inout selection:Int):
-        var tmp:Pointer[Int] = __get_lvalue_as_address(selection)
-        t = tmp.__as_index()
-        var id:String = str(t)
+        var id:String = self._ID(selection)
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):    
             selection = atol(str(self.request[1].split(tmp2)[1]))
@@ -246,9 +250,7 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
         self.response = str(self.response)+"</div>"
     
     def ComboBox(inout self,label:String,inout selection:Int,*selections:StringLiteral):
-        var tmp:Pointer[Int] = __get_lvalue_as_address(selection)
-        t = tmp.__as_index()
-        var id:String = str(t)
+        var id:String = self._ID(selection)
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):    
             selection = atol(str(self.request[1].split(tmp2)[1]))
@@ -266,9 +268,7 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
         self.response = str(self.response)+"</div>"
 
     def TextChoice(inout self, label:String,inout selected: String, *selections:StringLiteral):
-        var tmp:Pointer[String] = __get_lvalue_as_address(selected)
-        t = tmp.__as_index()
-        var id:String = str(t)
+        var id:String = self._ID(selected)
         var tmp2 = "/text_choice/"+id+"/"
         if self.request and self.request[1].startswith(tmp2): 
             try:
@@ -310,9 +310,7 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
     def ScrollableArea(inout self,height:Int=128)->ScrollableArea: return ScrollableArea(__get_lvalue_as_address(self.response),height)
     
     def ColorSelector(inout self, inout arg:String):
-        var tmp:Pointer[String] = __get_lvalue_as_address(arg)
-        var tmp2:Int = tmp.__as_index()
-        var id:String = str(tmp2)
+        var id:String = self._ID(arg)
         var tmp3 = "/colorselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3): 
             try:
@@ -324,9 +322,7 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
     
     #⚠️ not sure at all about the date format (see readme.md)
     def DateSelector(inout self, inout arg:String):
-        var tmp:Pointer[String] = __get_lvalue_as_address(arg)
-        var tmp2:Int = tmp.__as_index()
-        var id:String = str(tmp2)
+        var id = self._ID(arg)
         var tmp3 = "/dateselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3): 
             try:
@@ -336,6 +332,14 @@ struct Server[exit_if_request_not_from_localhost:Bool = True]:
             except e: print("Error ColorSelector widget: "+str(e))
         self.response += "<input style='margin:4px;border:0;' data-dateselector='true' type='date' id='"+id+"' value='"+arg+"'>" 
     def NewLine(inout self): self.response+="</br>"
+    fn _ID[T:AnyRegType](inout self,inout arg:T)->String:
+        var tmp:Pointer[T] = __get_lvalue_as_address(arg)
+        var tmp2:Int = tmp.__as_index()
+        var id:String = str(tmp2)
+        return id
+    fn Tag(inout self,tag:String,style:String="")->WithTag:
+        return WithTag(__get_lvalue_as_address(self.response),tag,style)
+
 @value
 struct ScrollableArea:
     var reponse: Pointer[PythonObject]
@@ -446,13 +450,14 @@ struct MojoTheme:
         return res
 
 def main():
+    #⚠️ see readme.md in order to be aware about challenges and limitations!
     val = 50
-    txt = String("Some value")
+    txt = String("Naïve UTF8 🥳")
     boolval = True
     multichoicevalue = String("First")
-    colorvalue = String("#FF0000")
+    colorvalue = String("#3584e4")
     datevalue = String("2024-01-01")
-    GUI = Server() #GUI.request_interval_second = 0.05 for faster refreshes
+    GUI = Server()
     
     POS = Position(1,1)
     POS2 = Position(1,350)
@@ -469,16 +474,10 @@ def main():
             if GUI.Button("Button"): val = 50 
             if GUI.Slider("Slider",val): 
                 print("Changed")
-            GUI.TextInput("Edit",txt)                       #spaces not supported yet
+            GUI.TextInput("Input",txt) #⚠️ ```maxlength='32'``` attribute by default.
             GUI.ComboBox("ComboBox",combovalues,selection)
-            GUI.Text("value:"+txt)
             GUI.Toggle(boolval,"Checkbox")
-        
-        with GUI.Window("Test",POS2): 
-            GUI.Text(txt)
-            if selection < len(combovalues):                #manual bound check for now
-                GUI.Text("Selected:" + combovalues[selection])
-        
+
         with GUI.Window("Fun features",POS3):
             GUI.Text(GUI.Circle.Green + " Green circle")
             GUI.Text(GUI.Square.Blue + " Blue square")
@@ -504,7 +503,13 @@ def main():
                 GUI.Text(GUI.Bold("ScrollableArea()"))
                 GUI.ColorSelector(colorvalue)
                 GUI.NewLine()
-                GUI.DateSelector(datevalue) #⚠️ not sure at all about the date format (see readme.md)
+                GUI.DateSelector(datevalue) #⚠️ format is unclear (see readme.md)
                 for i in range(10): GUI.Text(str(i))
-
-#redundent code might sometimes be necessary until switch from '/get' to XHR?
+        
+        with GUI.Window("Values",POS2): 
+            GUI.Text(txt)
+            if selection < len(combovalues):                #manual bound check for now
+                GUI.Text(combovalues[selection])
+            with GUI.Tag("div","background-color:"+colorvalue):
+                GUI.Text(colorvalue)
+            GUI.Text(datevalue)

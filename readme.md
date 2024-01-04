@@ -32,7 +32,7 @@
 
 - If the widget id is the address of a value, two input widgets of the same value will trigger twice (need more thinking for solution)
 
-- ```TextInput()``` do not support empty spaces yet, it is because the url will add ```%20``` to it!
+
 
 - Blocking loop by default (can be manually re-configured if needed)
 - Exit loop if request from other than "127.0.0.1" by default 
@@ -54,67 +54,69 @@
 ### Code:
 ```python
 def main():
-    val = 50
-    txt = String("Some value")
-    boolval = True
-    multichoicevalue = String("First")
-    colorvalue = String("#FF0000")
-    datevalue = String("2024-01-01") #⚠️ format might depend on country?
-    GUI = Server() 
-    
-    POS = Position(1,1)
-    POS2 = Position(1,350)
-    POS3 = Position(32,512)
-    POS4 = Position(512,16)
+  #⚠️ see readme.md (there are challenges and limitations!)
+  val = 50
+  txt = String("Naïve UTF8 🥳")
+  boolval = True
+  multichoicevalue = String("First")
+  colorvalue = String("#3584e4")
+  datevalue = String("2024-01-01")
+  GUI = Server()
+  
+  POS = Position(1,1)
+  POS2 = Position(1,350)
+  POS3 = Position(32,512)
+  POS4 = Position(512,16)
 
-    combovalues = DynamicVector[String]()
-    for i in range(5): combovalues.push_back("Value "+str(i))
-    selection = 1
+  combovalues = DynamicVector[String]()
+  for i in range(5): combovalues.push_back("Value "+str(i))
+  selection = 1
 
-    while GUI.Event():
-        with GUI.Window("Debug window",POS):
-            GUI.Text("Hello world 🔥")
-            if GUI.Button("Button"): val = 50 
-            if GUI.Slider("Slider",val): 
-                print("Changed")
-            GUI.TextInput("Edit",txt) #spaces not supported yet 
-            GUI.ComboBox("ComboBox",combovalues,selection)
-            GUI.Text("value:"+txt)
-            GUI.Toggle(boolval,"Checkbox")
-        
-        with GUI.Window("Test",POS2): 
-            GUI.Text(txt)
-            if selection < len(combovalues): #manual bound check for now
-                GUI.Text("Selected:" + combovalues[selection])
-        
-        with GUI.Window("Fun features",POS3):
-            GUI.Text(GUI.Circle.Green + " Green circle")
-            GUI.Text(GUI.Square.Blue + " Blue square")
-            GUI.Text(GUI.Accessibility.Info + " Some icons")
-            GUI.Text(GUI.Bold("Bold() ")+GUI.Highlight("Highlight()"))
-            GUI.Text(GUI.Small("small") + " text")
+  while GUI.Event():
+      with GUI.Window("Debug window",POS):
+          GUI.Text("Hello world 🔥")
+          if GUI.Button("Button"): val = 50 
+          if GUI.Slider("Slider",val): 
+              print("Changed")
+          GUI.TextInput("Input",txt) #⚠️ maxlength='32' attribute by default.
+          GUI.ComboBox("ComboBox",combovalues,selection)
+          GUI.Toggle(boolval,"Checkbox")
 
-            with GUI.Collapsible("Collapsible()"):
-                GUI.Text("Content")
+      with GUI.Window("Fun features",POS3):
+          GUI.Text(GUI.Circle.Green + " Green circle")
+          GUI.Text(GUI.Square.Blue + " Blue square")
+          GUI.Text(GUI.Accessibility.Info + " Some icons")
+          GUI.Text(GUI.Bold("Bold() ")+GUI.Highlight("Highlight()"))
+          GUI.Text(GUI.Small("small") + " text")
 
-        with GUI.Window("More widgets",POS4):
-            GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
-            GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
+          with GUI.Collapsible("Collapsible()"):
+              GUI.Text("Content")
 
-            with GUI.Table():
-                for r in range(3):
-                    with GUI.Row():
-                        for c in range(3): 
-                            with GUI.Cell():
-                                GUI.Text(str(r) + "," + str(c))
-    
-            with GUI.ScrollableArea(123):
-                GUI.Text(GUI.Bold("ScrollableArea()"))
-                GUI.ColorSelector(colorvalue)
-                GUI.NewLine()
-                GUI.DateSelector(datevalue) #⚠️ format is unclear
-                # require way more thinking !
-                for i in range(10): GUI.Text(str(i))
+      with GUI.Window("More widgets",POS4):
+          GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
+          GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
+
+          with GUI.Table():
+              for r in range(3):
+                  with GUI.Row():
+                      for c in range(3): 
+                          with GUI.Cell():
+                              GUI.Text(str(r) + "," + str(c))
+  
+          with GUI.ScrollableArea(123):
+              GUI.Text(GUI.Bold("ScrollableArea()"))
+              GUI.ColorSelector(colorvalue)
+              GUI.NewLine()
+              GUI.DateSelector(datevalue) #⚠️ format is unclear (see readme.md)
+              for i in range(10): GUI.Text(str(i))
+      
+      with GUI.Window("Values",POS2): 
+          GUI.Text(txt)
+          if selection < len(combovalues):                #manual bound check for now
+              GUI.Text(combovalues[selection])
+          with GUI.Tag("div","background-color:"+colorvalue):
+              GUI.Text(colorvalue)
+          GUI.Text(datevalue)
 ```
 
 &nbsp;
@@ -126,6 +128,11 @@ def main():
   - return True when clicked
 - TextInput
   - mutate the argument (passed as inout) automatically
+  - Naïve UTF8 support 🥳
+    - ⚠️ need more work, see challenges sections
+    - Additional untested safeguard:
+      -  DOM element is limited with the ```maxlength='32'``` attribute by default.
+
 - Text
 - Slider
   - return True on interaction
@@ -188,6 +195,8 @@ def main():
     - Todo: unix timestamp
   - One inout string argument (example: ```"2024-01-01"```)
   
+- Tag
+  - ```with GUI.Tag("div", style="background-color:orange"):``` (example)
 
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
@@ -279,6 +288,24 @@ Anything can be used to generate an id, require more thinking !
 - More
 
 &nbsp;
+## Challenges for UTF8 support:
+The new value of an TextInput() is passed to mojo trough the URL (GET request).
+
+As a temporary solution, the new value is converted to UTF8 by javascript.
+
+On the mojo side, part the url is splitted by "-" and atol() is used with chr().
+
+Example: ```/change_140732054756824/104-101-108-108-111```
+
+⚠️ 
+- There is an unknown maximum size for new values! ( because URLs are size limited)
+- Currenly, the socket will only read 1024 bytes from the request. (can be changed)
+
+For theses reasons, an additional safeguard is provided (untested):
+  - For the TextInput widget:
+    - The input DOM element is limited with the ```maxlength='32'``` attribute by default.
+
+Need more thinking! any ideas ?
 
 
 
