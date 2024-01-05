@@ -1,0 +1,103 @@
+body {
+    margin: 0px; padding:1px;
+    font-family:monospace;
+    font-size: 100%;
+    min-height: 100%;
+    background: rgb(128,128,128);
+}
+
+html {min-height: 100%;}
+
+.Button_ {
+    margin:4px;
+    border-width: 1px;
+    border-color: black;
+    border-style: solid;
+    background-color: black;
+    color:white;
+    max-width: fit-content;
+}
+
+.ToggleOff_ {
+    margin:4px;border-width: 1px;color: black;border-color: black;border-style: solid;background-color: red;max-width: fit-content;
+}
+
+.ToggleOn_ {
+    margin:4px;border-width: 1px;color: black;border-color: black;border-style: solid;background-color: green;max-width: fit-content;
+}
+
+.Text_ {
+    padding:4px;
+    color: black;
+    max-width: fit-content;
+}
+
+.SliderBox_ {
+    border: 1px solid black; margin:4px; max-width: fit-content;
+}
+
+.SliderLabel_ {
+    color: white; background-color: black;
+}
+
+
+.TextInputBox_ {
+    background-color:black; color:white; border: 1px solid black; margin:4px; max-width: fit-content;
+}
+.TextInputElement_ {
+    font-size: 75%;border: 0px;max-width: fit-content;
+}
+
+
+.Window_ {
+    position: absolute;
+    border-width: 1px;border-color: black;border-style: solid;;max-width: fit-content;
+}
+
+.WindowContent_ {
+    padding:1px;background-color: white;
+}
+
+.WindowTitle_ {
+    background-color: black;color: white;border-bottom: 1px solid black;
+}
+
+.DateSelector_ {
+    margin:4px;border:0;
+}
+
+.ColorSelector_ {
+    padding:0px;margin:4px;border:4px double black;
+}
+
+.ComboBox_ {
+    background-color:black;
+    color:white; 
+    border: 1px solid black;
+    margin:4px;
+    max-width: fit-content;
+}
+.ComboBoxSelect_ {
+    font-size: 75%;border: 0px;max-width: fit-content;
+}
+
+.TextChoiceFieldset_ {
+    margin:4px;border:1px solid black;
+}
+
+.TextChoiceLegend_ {
+    border:1px solid black;background-color: black;color:white
+}
+
+.Ticker_ {
+    max-width: fit-content;margin:2px;
+}
+
+.ScrollableArea_ {
+    margin:4px; border: 1px solid black; overflow: scroll;
+}
+
+.Collapsible_ {
+    background-color: black;
+    color:white;
+}

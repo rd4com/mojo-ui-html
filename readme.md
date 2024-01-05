@@ -39,6 +39,11 @@
   - Just an additional safeguard, not been tested! 
   - Can be re-configured if needed (Bool)
 
+- Need a refreshing mechanism (require more thinking):
+  - In sequential order, if a value is shown, then a slider is defined for it.
+    - When mutated(event), the shown part won't reflect it, because it happened before.
+  - Solution: an update Button() or a new ShouldRefresh feature (todo).
+
 
 - Probably more
 
@@ -47,21 +52,26 @@
 
 
 
-
+*(Default base theme)*
 <img src="./example.png">
+
+*(theme_neutral.css base theme)*
+
+<img src='./example2.png'/>
 
 &nbsp;
 ### Code:
 ```python
 def main():
-  #⚠️ see readme.md (there are challenges and limitations!)
+  #⚠️ see readme.md, there are challenges and limitations!
   val = 50
   txt = String("Naïve UTF8 🥳")
   boolval = True
   multichoicevalue = String("First")
-  colorvalue = String("#3584e4")
+  colorvalue = String("#1C71D8")
   datevalue = String("2024-01-01")
-  GUI = Server()
+
+  GUI = Server()        #Server[base_theme="theme_neutral.css"]()
   
   POS = Position(1,1)
   POS2 = Position(1,350)
@@ -78,7 +88,7 @@ def main():
           if GUI.Button("Button"): val = 50 
           if GUI.Slider("Slider",val): 
               print("Changed")
-          GUI.TextInput("Input",txt) #⚠️ maxlength='32' attribute by default.
+          GUI.TextInput("Input",txt) #⚠️ ```maxlength='32'``` attribute by default.
           GUI.ComboBox("ComboBox",combovalues,selection)
           GUI.Toggle(boolval,"Checkbox")
 
@@ -110,41 +120,64 @@ def main():
               GUI.DateSelector(datevalue) #⚠️ format is unclear (see readme.md)
               for i in range(10): GUI.Text(str(i))
       
-      with GUI.Window("Values",POS2): 
+      with GUI.Window("Values",POS2,CSSTitle="background-color:"+colorvalue): 
           GUI.Text(txt)
-          if selection < len(combovalues):                #manual bound check for now
+          
+          if selection < len(combovalues):           #manual bound check for now
               GUI.Text(combovalues[selection])
+          
           with GUI.Tag("div","background-color:"+colorvalue):
               GUI.Text(colorvalue)
+          
           GUI.Text(datevalue)
+          
+          with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
+              GUI.Text("❤️‍🔥")
+          
+          GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
 ```
 
 &nbsp;
 
 ## Features
-- Themed with CSS inside a struct, where widgets have a corresponding alias!
+- Themed with CSS, where widgets have a corresponding base style entry (class attribute)!
   - Default theme colors are kept familiar (🎁)🔥.
+  - Offers patching on the fly of individual widgets instances styles (keyword arguments).
+  - see [The current styling system](#🎨-the-current-styling-system)
+
 - Button
   - return True when clicked
+  - CSS keyword argument, for the style attribute of the dom element (default: "")
+    
+
 - TextInput
   - mutate the argument (passed as inout) automatically
   - Naïve UTF8 support 🥳
     - ⚠️ need more work, see challenges sections
     - Additional untested safeguard:
       -  DOM element is limited with the ```maxlength='32'``` attribute by default.
-
+  - ```CSSBox``` keyword argument (default: "")
+    - style attribute for the widget container (contains both label and input element)
+    - todo: keyword arguments for label and input element
 - Text
 - Slider
   - return True on interaction
   - mutate the argument (passed as inout) automatically
   - supports click but not drag yet (the moving window event is triggered)
   - min=0, max=100 keyword arguments
+  - CSSLabel keyword argument, style attribute of label (default:  "")
+  - CSSBox keyword argument, style attribute of widget container (default: "")
 - Windowing system
   - Moved by dragging! 🥳
   - Can be defined in a nested way: moving "main" will keep "nested" in relative position.
   - Positions saved on the mojo side in user defined values (Position(0,0))
+  - ```CSSTitle keyword argument``` (default to empty)
+    - Provides Additional css for the style attribute of the title box
+    - Usefull for changing the title bar background-color, for example
+
 - Toggle widget (similar to checkbox)
    - Mutate a bool passed as argument (inout)
+
 - ComboBox
    - ID is the inout address of the selection value
    - The selection value is the index of the selected value in the DynamicVector of selections
@@ -154,6 +187,7 @@ def main():
 
 - Collapsible
   - Implemented as a with block
+  - ```CSS``` keyword argument, to define the style attribute of the title part.
 
 - TextChoice
   - Inout string to store the selected value 
@@ -184,7 +218,7 @@ def main():
       for i in range(10): GUI.Text(str(i))
     ```
 
-- NewLine()
+- NewLine
 
 - 🎨 ColorSelector
   - One inout string argument (example: ```"#FF0000"```)
@@ -196,7 +230,8 @@ def main():
   - One inout string argument (example: ```"2024-01-01"```)
   
 - Tag
-  - ```with GUI.Tag("div", style="background-color:orange"):``` (example)
+  - ```with GUI.Tag("div", style="background-color:orange"):``` *(example)*
+  - Create a Dom element with or without inline CSS (**not** class attribute)
 
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
@@ -262,19 +297,7 @@ Anything can be used to generate an id, require more thinking !
   - Both are user friendly and easy to learn
 
 
-&nbsp;
 
-## For the future:
-- Toast messages (```notifications```)
-- ```Ticker widget```: a banner where text move in a loop at a specified speed
-- A ```node system``` (plug, drag-drop)
-- Widget to form a number using the scrollwheel (modify individual hovered digits)
-- ```XHR Post``` instead of ```get /widget_id/newvalue  ```
-  - should fix ```%20``` problem
-  - play ```audio``` in an independent DOM element
-- ```Drag and drop``` capabilities (example: list to list)
-- Move the generated css from attributes to \<Style\> or /styles.css (smaller page and/or cached)
-- ✏️
 
 &nbsp;
 
@@ -307,8 +330,56 @@ For theses reasons, an additional safeguard is provided (untested):
 
 Need more thinking! any ideas ?
 
+&nbsp;
+
+# 🎨 The current styling system
+The idea is to provide choices of default CSS to act as a base and include theses inside the ```<style>``` tag.
+
+The default css of the widgets is 'defined' with the class attribute, this is important.
+
+Because it means it is possible to 'patch' it on the fly with a style attribute next to it (on the right)!
+
+This is how individual widgets instances can be customized on top of a base style (example, another font-size for that button).
+
+The customization part could become a new abstraction on top of css. (optional user-friendly helper functions, for example)
+
+Eventually, abstraction and pure css should be both be avaiblable.
 
 
+### Example
+Here is the base style for the Button widget *(theme.css)*:
+```css
+/* ... */
+.Button_ {
+    border-width: 4px;border-color: black;border-style: solid;
+    color: blue; background-color: yellow; max-width: fit-content;
+}
+/* ... */
+```
+Button can take additional CSS as a keyword argument for the ```style``` attribute of the DOM element:
+```python
+with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
+    GUI.Text("❤️‍🔥")
+    #Additional CSS:
+    GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
+```
 
+### Different base themes (CSS)
+By default, the type will use "theme.css" as a base style, it is possible to change it in the parameters:
 
+```python
+GUI = Server[base_theme="theme_neutral.css"]()
+```
 
+&nbsp;
+
+# For the future:
+- Toast messages (```notifications```)
+- A ```node system``` (plug, drag-drop)
+- Widget to form a number using the scrollwheel (modify individual hovered digits)
+- ```XHR Post``` instead of ```get /widget_id/newvalue  ```
+  - should fix ```%20``` problem
+  - play ```audio``` in an independent DOM element
+- ```Drag and drop``` capabilities (example: list to list)
+
+- ✏️
