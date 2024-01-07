@@ -1,6 +1,6 @@
 
 
-# ```mojo-ui-html```
+# mojo-ui-html
 
 
 - ### 👷👷‍♀️ Under construction, make sure to wear a helmet !
@@ -52,16 +52,40 @@
 
 
 
-*(Default base theme)*
+# Principal demo: ```theme.css```(default)
 <img src="./example.png">
 
-*(theme_neutral.css base theme)*
-
-<img src='./example2.png'/>
 
 &nbsp;
-### Code:
+
+# Simple simd counters: ```theme_neutral.css``` 
+<img src='./example2.png'/>
+
+
 ```python
+from ui import *
+from math import iota, sqrt
+def main():
+    GUI = Server[base_theme="theme_neutral.css"]()
+    var counter = 0
+    while GUI.Event():  #Not necessary to create a window if not needed!
+        if GUI.Button("increment"): counter+=1
+        if GUI.Button("decrement"): counter-=1
+        GUI.Slider("Counter",counter)
+        var tmp = iota[DType.float16,SIMD[DType.float16].size](counter)
+        GUI.Text(tmp)
+        GUI.Text(sqrt(tmp))
+
+        #There is a refresh challenge if events occurs after value drawn
+        #If buttons are here, previously drawn GUI.Text won't reflect the new value
+        #Temporary fix: if GUI.Button("Refresh"): ...
+```
+
+&nbsp;
+# Principal demo code:
+```python
+from ui import *
+
 def main():
   #⚠️ see readme.md, there are challenges and limitations!
   val = 50
@@ -71,7 +95,7 @@ def main():
   colorvalue = String("#1C71D8")
   datevalue = String("2024-01-01")
 
-  GUI = Server()        #Server[base_theme="theme_neutral.css"]()
+  GUI = Server()        
   
   POS = Position(1,1)
   POS2 = Position(1,350)
@@ -168,10 +192,11 @@ def main():
   - CSSLabel keyword argument, style attribute of label (default:  "")
   - CSSBox keyword argument, style attribute of widget container (default: "")
 - Windowing system
-  - Moved by dragging! 🥳
-  - Can be defined in a nested way: moving "main" will keep "nested" in relative position.
-  - Positions saved on the mojo side in user defined values (Position(0,0))
-  - ```CSSTitle keyword argument``` (default to empty)
+  - ```Moved``` by dragging the title bar! 🥳
+  - 🔥🔥🔥 ```Individually scaled/zoomed``` with mousewheel "scroll" on the titlebar !  
+  - Optionals, the ui can render "on the page" if none, even both!  
+  - Positions and scales on the mojo side in user defined values (```Position(0,0)```)
+  - ```CSSTitle``` keyword argument (default to empty)
     - Provides Additional css for the style attribute of the title box
     - Usefull for changing the title bar background-color, for example
 
@@ -230,8 +255,13 @@ def main():
   - One inout string argument (example: ```"2024-01-01"```)
   
 - Tag
-  - ```with GUI.Tag("div", style="background-color:orange"):``` *(example)*
-  - Create a Dom element with or without inline CSS (**not** class attribute)
+  - With block implementation, example: ```with GUI.Tag("div"):```
+  - ```style``` keyword argument
+    - To specify inline CSS for the  DOM element style attribute
+        - example: ```"background-color:orange;"```
+  - ```_additional_attributes``` keyword argument
+    - To specify attributes on the html DOM element 
+        - example: ```"class='otherclass'"```
 
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
@@ -369,6 +399,14 @@ By default, the type will use "theme.css" as a base style, it is possible to cha
 
 ```python
 GUI = Server[base_theme="theme_neutral.css"]()
+```
+
+Additionally, the theme can specified on the command-line:
+
+*(Thanks to Carl Caulkett for the suggestion 🔥)*
+
+```
+mojo run -D mojo_ui_html_theme="theme_neutral.css" demo_principal.mojo
 ```
 
 &nbsp;

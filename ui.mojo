@@ -1,3 +1,4 @@
+from sys import param_env
 from python import Python
 from time import sleep
 
@@ -28,7 +29,6 @@ struct Squares:
     alias Orange: String = "🟧"
     alias Brown:String= "🟫"
 
-
 struct Arrow:
     alias Up: String = "⬆️"
     alias Down:String = "⬇️"
@@ -39,10 +39,14 @@ struct Arrow:
 struct Position:
     var x:Int
     var y:Int
+    var scale:Float64
+    fn __init__(inout self,x:Int,y:Int,scale:Float64=1.0):
+        self.x =x
+        self.y =y
+        self.scale = scale
 
-#Todo: parameter of type GuiConfig {non_blocking:Bool = False, more}
 @value
-struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:Bool = True]:
+struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_theme","theme.css"](), exit_if_request_not_from_localhost:Bool = True]:
     alias Circle = Circles
     alias Square = Squares
     alias Arrow = Arrow
@@ -52,7 +56,7 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
     var client: PythonObject
     var response: PythonObject
     var request: PythonObject
-    var data: String
+
     var send_response : Bool
     var request_interval_second: Float64
     var base_styles: String
@@ -77,7 +81,7 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
         self.client = PythonObject(None)
         self.response = PythonObject(None)
         self.request = PythonObject(None)
-        self.data = ""
+        
         self.send_response=False
         self.request_interval_second=0.1
         self.start()
@@ -101,12 +105,13 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
                 self.client[0].sendall(self.response.encode())
                 self.client[0].close()
             except e: print(e)
-        try:
-            self.response = PythonObject('HTTP/1.0 200 OK\n\n')
-            self.response += "<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head><script>"+self.base_js+"</script><style>"+self.base_styles+"</style><meta charset='UTF-8'></head><body>"
-        except e: print(e)    
+            self.send_response=False
+
         try: #if error is raised in the block, no request or an error
             self.client = self.server.accept()
+            self.response = PythonObject('HTTP/1.0 200 OK\n\n')
+            self.response += "<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head><script>"+self.base_js+"</script><style>"+self.base_styles+"</style><meta charset='UTF-8'></head><body>"
+ 
             @parameter
             if exit_if_request_not_from_localhost:
                 if self.client[1][0] != '127.0.0.1': 
@@ -114,7 +119,7 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
                     return False
             self.request = self.client[0].recv(1024).decode()
             self.request = self.request.split('\n')[0].split(" ")
-           #print(self.request) # for debug
+            #print(self.request) # for debug
             self.send_response=True
         except e:
             self.send_response=False 
@@ -123,10 +128,6 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
     
     def SetNoneRequest(inout self):
         self.request = PythonObject(None) #None means event handled (if self.request == True)
-    
-    @staticmethod
-    def TagBuild(T:String,content:String,CSS:String="",id:String="")->String:
-        return String("<"+T)+ " style='"+CSS+"' id='"+id+"'"+">" + content + "</"+T+">"
     
     def Button(inout self,txt:String,CSS:String="") ->Bool:
         self.response = str(self.response)+"<div data-click='true' class='Button_' style='"+CSS+"' id='"+txt+"'"+">" + txt + "</div>"
@@ -252,6 +253,8 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
     def Bold(inout self, t:String)->String: return "<b>"+t+"</b>"
     def Highlight(inout self, t:String)->String: return "<mark>"+t+"</mark>"
     def Small(inout self, t:String)->String: return "<small>"+t+"</small>"
+    def _Ticker(inout self,t:String)->String:
+        return "<marquee>"+t+"</marquee>"
     def Ticker(inout self,t:String,width:Int=200):
         self.response+="<div class='Ticker_' style='width:"+str(width)+"px'><marquee>"+t+"</marquee></div>"
     def Digitize(inout self, number: Int)->String :
@@ -263,9 +266,9 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
         return(res)
 
     def Collapsible(inout self,title:String,CSS:String="")->Collapsible: return Collapsible(title,__get_lvalue_as_address(self.response),CSS)
-    def Table(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"table","margin:4px;border:1px solid black;")
-    def Row(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"tr","border:1px solid black;") 
-    def Cell(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"td","border:1px solid black;") 
+    def Table(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"table","margin:4px;border:1px solid black;"," ")
+    def Row(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"tr","border:1px solid black;"," ") 
+    def Cell(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"td","border:1px solid black;"," ") 
     def ScrollableArea(inout self,height:Int=128)->ScrollableArea: return ScrollableArea(__get_lvalue_as_address(self.response),height)
     
     def ColorSelector(inout self, inout arg:String):
@@ -296,8 +299,8 @@ struct Server[base_theme:String="theme.css", exit_if_request_not_from_localhost:
         var tmp2:Int = tmp.__as_index()
         var id:String = str(tmp2)
         return id
-    fn Tag(inout self,tag:String,style:String="")->WithTag:
-        return WithTag(__get_lvalue_as_address(self.response),tag,style)
+    fn Tag(inout self,tag:String,style:String="",_additional_attributes:String=" ")->WithTag:
+        return WithTag(__get_lvalue_as_address(self.response),tag,style,_additional_attributes)
 
 @value
 struct ScrollableArea:
@@ -336,8 +339,9 @@ struct WithTag:
     var data: Pointer[PythonObject]
     var tag:String
     var style:String
+    var _additional_attributes:String
     fn __enter__(self):
-        try : __get_address_as_lvalue(self.data.address) += "<"+self.tag+" style='" + self.style + "'>"
+        try : __get_address_as_lvalue(self.data.address) += "<"+self.tag+" "+self._additional_attributes+" style='" + self.style + "'>"
         except e: print(e)
     fn __exit__( self): self.close()
     fn __exit__( self, err:Error)->Bool: 
@@ -360,15 +364,26 @@ struct Window:
             var id = str(self.pos.__as_index())#str(hash(self.name._as_ptr(),len(self.name)))
             var positions:String = ""
             var req = __get_address_as_lvalue(self.request.address)
-            if req and req[1].startswith("/window_"+id): 
-                var val = req[1].split("/window_"+id)[1].split("/")
-                __get_address_as_lvalue(self.pos.address).x += atol(str(val[1])) #todo try: block for atol
-                __get_address_as_lvalue(self.pos.address).y += atol(str(val[2]))
+            
+            if req and req[1].startswith("/window_scale_"+id): 
+                var val = req[1].split("/window_scale_"+id)[1].split("/")
+                if val[1] == "1":
+                    __get_address_as_lvalue(self.pos.address).scale+=0.1
+                else:
+                    if __get_address_as_lvalue(self.pos.address).scale >=0.2:
+                        __get_address_as_lvalue(self.pos.address).scale-=0.1
                 __get_address_as_lvalue(self.request.address) = PythonObject(None) #possibly not good
+            else:
+                if req and req[1].startswith("/window_"+id): 
+                    var val = req[1].split("/window_"+id)[1].split("/")
+                    __get_address_as_lvalue(self.pos.address).x += atol(str(val[1])) #todo try: block for atol
+                    __get_address_as_lvalue(self.pos.address).y += atol(str(val[2]))
+                    __get_address_as_lvalue(self.request.address) = PythonObject(None) #possibly not good
             positions += "left:"+str(__get_address_as_lvalue(self.pos.address).x)+"px;"
             positions += "top:"+str(__get_address_as_lvalue(self.pos.address).y)+"px;"
-            __get_address_as_lvalue(self.content.address) += "<div draggable='true' ondragstart='drag(event)' class='Window_' style='" +positions+ ";' id='"+id +"'>"
-            __get_address_as_lvalue(self.content.address) += "<div class='WindowTitle_' style='"+self.titlecss+"'>➖ ❌ " + self.name + "&nbsp;</div>"
+            var scale:String = str(__get_address_as_lvalue(self.pos.address).scale)
+            __get_address_as_lvalue(self.content.address) += "<div  ondragstart='drag(event)' class='Window_' style='transform-origin: 0% 0% 0px;transform:scale("+scale+");" +positions+ ";' id='"+id +"'>"
+            __get_address_as_lvalue(self.content.address) += "<div data-zoomlevel='1.O' onwheel='zoom_window(event)' onmouseover='DragOn(event)'  onmouseout='DragOff(event)' data-istitlebar='true' class='WindowTitle_' style='cursor:grab;"+self.titlecss+"'>➖ ❌ " + self.name + "&nbsp;</div>"
             __get_address_as_lvalue(self.content.address) += "<div class='WindowContent_' style=''>"
         except e: print("Window __enter__ widget:"+str(e))
     fn __exit__( self): self.close()
@@ -378,73 +393,3 @@ struct Window:
         except e: print("Window close() widget:"+str(e)) 
         return True
     fn __exit__( self, err:Error)->Bool: return self.close()
-
-
-def main():
-    #⚠️ see readme.md in order to be aware about challenges and limitations!
-    val = 50
-    txt = String("Naïve UTF8 🥳")
-    boolval = True
-    multichoicevalue = String("First")
-    colorvalue = String("#1C71D8")
-    datevalue = String("2024-01-01")
-
-    GUI = Server() #Server[base_theme="theme_neutral.css"]()
-    
-    POS = Position(1,1)
-    POS2 = Position(1,350)
-    POS3 = Position(32,512)
-    POS4 = Position(512,16)
-
-    combovalues = DynamicVector[String]()
-    for i in range(5): combovalues.push_back("Value "+str(i))
-    selection = 1
-
-    while GUI.Event():
-        with GUI.Window("Debug window",POS):
-            GUI.Text("Hello world 🔥")
-            if GUI.Button("Button"): val = 50 
-            if GUI.Slider("Slider",val): 
-                print("Changed")
-            GUI.TextInput("Input",txt) #⚠️ ```maxlength='32'``` attribute by default.
-            GUI.ComboBox("ComboBox",combovalues,selection)
-            GUI.Toggle(boolval,"Checkbox")
-
-        with GUI.Window("Fun features",POS3):
-            GUI.Text(GUI.Circle.Green + " Green circle")
-            GUI.Text(GUI.Square.Blue + " Blue square")
-            GUI.Text(GUI.Accessibility.Info + " Some icons")
-            GUI.Text(GUI.Bold("Bold() ")+GUI.Highlight("Highlight()"))
-            GUI.Text(GUI.Small("small") + " text")
-
-            with GUI.Collapsible("Collapsible()"):
-                GUI.Text("Content")
-
-        with GUI.Window("More widgets",POS4):
-            GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
-            GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
-
-            with GUI.Table():
-                for r in range(3):
-                    with GUI.Row():
-                        for c in range(3): 
-                            with GUI.Cell():
-                                GUI.Text(str(r) + "," + str(c))
-    
-            with GUI.ScrollableArea(123):
-                GUI.Text(GUI.Bold("ScrollableArea()"))
-                GUI.ColorSelector(colorvalue)
-                GUI.NewLine()
-                GUI.DateSelector(datevalue) #⚠️ format is unclear (see readme.md)
-                for i in range(10): GUI.Text(str(i))
-        
-        with GUI.Window("Values",POS2,CSSTitle="background-color:"+colorvalue): 
-            GUI.Text(txt)
-            if selection < len(combovalues):                #manual bound check for now
-                GUI.Text(combovalues[selection])
-            with GUI.Tag("div","background-color:"+colorvalue):
-                GUI.Text(colorvalue)
-            GUI.Text(datevalue)
-            with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
-                GUI.Text("❤️‍🔥")
-            GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
