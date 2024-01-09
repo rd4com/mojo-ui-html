@@ -182,6 +182,7 @@ def main():
     
 
 - TextInput
+  - return ```True``` when UI interaction occured
   - mutate the argument (passed as inout) automatically
   - Naïve UTF8 support 🥳
     - ⚠️ need more work, see challenges sections
@@ -192,7 +193,7 @@ def main():
     - todo: keyword arguments for label and input element
 - Text
 - Slider
-  - return True on interaction
+  - return ```True``` when UI interaction occured
   - ```label:String``` not optional
   - mutate ```inout val:Int``` argument
   - ```min:Int=0, max:Int=100``` keyword arguments
@@ -207,11 +208,13 @@ def main():
     - Usefull for changing the title bar background-color, for example
 
 - Toggle
+  - return ```True``` when UI interaction occured
   - Mutate a bool passed as argument (inout)
   - Similar to a checkbox
 - ComboBox
-   - ID is the inout address of the selection value
-   - The selection value is the index of the selected value in the DynamicVector of selections
+  - return ```True``` when UI interaction occured
+  - ID is the inout address of the selection value
+  - The selection value is the index of the selected value in the DynamicVector of selections
   - VariadicList support ! 🔥
     - ```ComboBox("Simple combobox",selection,"one","two","three")```
 
@@ -253,10 +256,13 @@ def main():
 
 - 🎨 ColorSelector
   - inout string argument (example: ```var c:String = "#FF0000"```)
+  - return ```True``` when UI interaction occured
 - ⌚ TimeSelector
   - inout string argument (example: ```var t:String = "23:59"```)
+  - return ```True``` when UI interaction occured
 - 🗓️ DateSelector
   - inout string argument (example: ```var d:String = "2024-01-01"```)
+  - return ```True``` when UI interaction occured
   - ⚠️ date format:
     - Not same for every machine?
     - Todo: unix timestamp

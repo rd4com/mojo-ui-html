@@ -186,16 +186,19 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             return True
         return False
     
-    def Toggle(inout self,inout val:Bool,label:String):
+    def Toggle(inout self,inout val:Bool,label:String)->Bool:
+        var res:Bool = False
         var val_repr = "ToggleOff_"
         var id:String = self._ID(val)
         if self.request and self.request[1] == "/click_"+id:
             val = not val
             self.should_re_render()
             self.SetNoneRequest()
+            res = True
 
         if val: val_repr = "ToggleOn_"
         self.response = str(self.response)+"<div data-click='true' class='"+val_repr+"' id='"+id+"'"+">"+label+ "</div>"
+        return res
 
     fn Text(inout self:Self, txt:String):
         try:
@@ -220,7 +223,8 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         self.response = str(self.response)+"</div>"
         return retval
 
-    fn TextInput[maxlength:Int=32](inout self,label:String,inout val:String,CSSBox:String=""):
+    fn TextInput[maxlength:Int=32](inout self,label:String,inout val:String,CSSBox:String="")->Bool:
+        var ret_val = False
         try:
             var id:String = self._ID(val)
             var tmp2 = "/change_"+id+"/"
@@ -228,6 +232,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                 val = "" #empty
                 self.should_re_render()
                 self.SetNoneRequest()
+                ret_val = True
             else:
                 if self.request and self.request[1].startswith(tmp2):  
                     var tmp3 = str(self.request[1].split(tmp2)[1]).split("-") 
@@ -237,6 +242,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                     val = tmp4
                     self.should_re_render()
                     self.SetNoneRequest()
+                    ret_val = True
             
             self.response = str(self.response)+"<div class='TextInputBox_' style='"+CSSBox+"'>"
             if label!="":
@@ -244,14 +250,17 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             self.response = str(self.response)+"<input maxlength='"+str(maxlength)+"' class='TextInputElement_' data-textinput='true' value='"+val+"' type='text' id='"+id+"'>"
             self.response = str(self.response)+"</div>"
         except e: print("Error TextInput widget: "+ str(e))
+        return ret_val
         
-    def ComboBox(inout self,label:String,values:DynamicVector[String],inout selection:Int):
+    def ComboBox(inout self,label:String,values:DynamicVector[String],inout selection:Int)->Bool:
+        var ret_val = False
         var id:String = self._ID(selection)
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):    
             selection = atol(str(self.request[1].split(tmp2)[1]))
             self.should_re_render()
             self.SetNoneRequest()
+            ret_val = True
         
 
         self.response = str(self.response)+"<div class='ComboBox_' style=''>"
@@ -263,14 +272,17 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             self.response +=  "<option "+ selected +" value='" + values[s] +"'>"+values[s]+"</option>"
         self.response += "</select>"
         self.response = str(self.response)+"</div>"
+        return ret_val
     
-    def ComboBox(inout self,label:String,inout selection:Int,*selections:StringLiteral):
+    def ComboBox(inout self,label:String,inout selection:Int,*selections:StringLiteral)->Bool:
+        var ret_val = False
         var id:String = self._ID(selection)
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):    
             selection = atol(str(self.request[1].split(tmp2)[1]))
             self.should_re_render()
             self.SetNoneRequest()
+            ret_val = True
         
 
         self.response = str(self.response)+"<div class='ComboBox_'>"
@@ -282,6 +294,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             self.response +=  "<option "+ selected +" value='" + selections[s] +"'>"+selections[s]+"</option>"
         self.response += "</select>"
         self.response = str(self.response)+"</div>"
+        return ret_val
 
     def TextChoice(inout self, label:String,inout selected: String, *selections:StringLiteral):
         var id:String = self._ID(selected)
@@ -329,7 +342,8 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
     def Cell(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"td","border:1px solid black;"," ") 
     def ScrollableArea(inout self,height:Int=128)->ScrollableArea: return ScrollableArea(__get_lvalue_as_address(self.response),height)
     
-    def ColorSelector(inout self, inout arg:String):
+    def ColorSelector(inout self, inout arg:String)->Bool:
+        var ret_val = False
         var id:String = self._ID(arg)
         var tmp3 = "/colorselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3): 
@@ -338,10 +352,13 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                 arg=result
                 self.should_re_render()
                 self.SetNoneRequest()
+                ret_val = True
             except e: print("Error ColorSelector widget: "+str(e))
         self.response += "<input class='ColorSelector_' data-colorselector='true' type='color' id='"+id+"' value='"+arg+"'>" 
-    
-    def TimeSelector(inout self, inout arg:String):
+        return ret_val
+        
+    def TimeSelector(inout self, inout arg:String)->Bool:
+        var ret_val = False
         var id = self._ID(arg)
         var tmp3 = "/timeselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3): 
@@ -350,12 +367,15 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                 arg=result
                 self.should_re_render()
                 self.SetNoneRequest()
+                ret_val = True
             except e: print("Error TimeSelector widget: "+str(e))
         
         self.response += "<input class='DateSelector_' data-callbackurl='"+tmp3+"' type='time' id='"+id+"' value='"+arg+"' onblur='send_element_value(event)'>" 
+        return ret_val
 
     #⚠️ not sure at all about the date format (see readme.md)
-    def DateSelector(inout self, inout arg:String):
+    def DateSelector(inout self, inout arg:String)->Bool:
+        var ret_val = False
         var id = self._ID(arg)
         var tmp3 = "/dateselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3): 
@@ -364,8 +384,10 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                 arg=result
                 self.should_re_render()
                 self.SetNoneRequest()
+                ret_val = True
             except e: print("Error DateSelector widget: "+str(e))
         self.response += "<input class='DateSelector_' data-dateselector='true' type='date' id='"+id+"' value='"+arg+"'>" 
+        return ret_val
     def NewLine(inout self): self.response+="</br>"
     fn _ID[T:AnyRegType](inout self,inout arg:T)->String:
         var tmp:Pointer[T] = __get_lvalue_as_address(arg)
