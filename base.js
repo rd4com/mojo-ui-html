@@ -1,38 +1,44 @@
+
+
+
 ['click','input','change'].forEach(function(evt) {
     document.addEventListener(evt, function (event) {         
         var id = event.target.getAttribute('id'); 
         if (id){
             if (evt == "click") {
                 if (event.target.dataset.click == "true"){
-                    window.location.href = "/"+evt+"_"+id
+                    //new_xhr("/"+evt+"_"+id,false)
+                    //window.location.href = "/"+evt+"_"+id
+                    event_and_refresh("/"+evt+"_"+id)
+                    //window.location.href="/"
                 }
                 if (event.target.dataset.hasOwnProperty('textchoice')){
-                    window.location.href = event.target.dataset.textchoice
+                    event_and_refresh(event.target.dataset.textchoice)
                 } 
             }
             if (evt == "change") {
                 if (event.target.dataset.textinput == "true"){
                     const encoder = new TextEncoder();
                     const utf8 = encoder.encode(event.target.value);
-                    console.log(utf8.join("-"))
-                    window.location.href = "/"+evt+"_"+id+"/"+utf8.join("-")
+                    event_and_refresh("/"+evt+"_"+id+"/"+utf8.join("-"))
                 }
                 if (event.target.dataset.change == "true"){
-                    window.location.href = "/"+evt+"_"+id+"/"+event.target.value
+                    event_and_refresh("/"+evt+"_"+id+"/"+event.target.value)
                 }
                  if (event.target.dataset.combobox == "true"){
-                    window.location.href = "/combobox_"+id+"/"+event.target.selectedIndex
+                    event_and_refresh("/combobox_"+id+"/"+event.target.selectedIndex)
                 }
                 if (event.target.dataset.colorselector == "true"){
-                    window.location.href = "/colorselector_"+id+"/"+event.target.value.substring(1)
+                    event_and_refresh("/colorselector_"+id+"/"+event.target.value.substring(1))
                 }
                 if (event.target.dataset.dateselector == "true"){
-                    window.location.href = "/dateselector_"+id+"/"+event.target.value
+                    event_and_refresh("/dateselector_"+id+"/"+event.target.value)
                 }
             }
             if (evt == "input") {
                 if (event.target.dataset.hasOwnProperty('input')){
-                    window.location.href = "/"+evt+"_"+id+"/"+event.target.value
+                    alert("test")
+                    event_and_refresh("/"+evt+"_"+id+"/"+event.target.value)
                 }
             }
         }
@@ -86,10 +92,10 @@ function zoom_window(e){
     //window.location.href = "/window_scale_"+e.target.parentElement.id+"/"+e.target.dataset.zoomlevel
     e.preventDefault()
 }
-/* not used yet
-function new_xhr(data,async_mode){
-    var xhttp = new XMLHttpRequest();
-    xhttp.overrideMimeType("text/plain");
-    xhttp.open("GET", data, async_mode);
-    xhttp.send();
-}*/
+
+function event_and_refresh(data){
+    window.location.href=data
+}
+function send_element_value(event){
+    window.location.href=event.target.dataset.callbackurl+event.target.value
+}
