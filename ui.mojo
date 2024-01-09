@@ -57,6 +57,10 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
     var response: PythonObject
     var request: PythonObject
 
+    var last_rendition: String
+    var total_renditions: Int
+    var re_render_current: Bool
+
     var send_response : Bool
     var request_interval_second: Float64
     var base_styles: String
@@ -82,6 +86,9 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         self.response = PythonObject(None)
         self.request = PythonObject(None)
         
+        self.last_rendition = " "
+        self.re_render_current=False
+        self.total_renditions = 0
         self.send_response=False
         self.request_interval_second=0.1
         self.start()
@@ -97,21 +104,55 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
     fn __del__(owned self):
         try: self.server.close() except e: print(e)
     
+    fn _response_init(inout self):
+        try:
+            self.response = PythonObject('HTTP/1.0 200 OK\n\n')
+            self.response += "<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head><link rel='icon' href='data:;base64,='><script>"+self.base_js+"</script><style>"+self.base_styles+"</style><meta charset='UTF-8'></head><body>"
+        except e: print("error, _reponse_init:"+str(e))
+    def should_re_render(inout self): self.re_render_current = True
+    
     fn Event(inout self) -> Bool: 
-        
-        if self.send_response == True: #non blocking loop, if previous iteration generated response, do send
+
+        if self.send_response == True: 
+            self.total_renditions+=1
+            var current_rendition:String=" "
             try:
-                self.response+="</body></html>"
-                self.client[0].sendall(self.response.encode())
-                self.client[0].close()
+                current_rendition = str(self.response.encode())
+                var different = False
+                if len(current_rendition)!=len(self.last_rendition): 
+                    different=True
+                else:
+                    for c in range(len(current_rendition)):
+                        if current_rendition[c] != self.last_rendition[c]: different = True
+                
+                if self.re_render_current:
+                    different=True
+                    self.re_render_current=False
+                
+                if self.total_renditions >10:
+                    different=False
+                
+                if different:
+                    self.last_rendition = current_rendition
+                    self._response_init()
+                    self.send_response=True
+                    # need counter to stop the loop after 
+                    return True
+                else:
+                    self.response += "<div class='rendition_box' id='_rendition_status'>"+str(self.total_renditions)+"</div>"
+                    self.response+= "</body></html>"
+                    self.client[0].sendall(self.response.encode())
+                    self.client[0].close()
+                    self.send_response=False
+                    self.last_rendition = current_rendition
+                    
             except e: print(e)
-            self.send_response=False
+            
 
         try: #if error is raised in the block, no request or an error
             self.client = self.server.accept()
-            self.response = PythonObject('HTTP/1.0 200 OK\n\n')
-            self.response += "<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head><script>"+self.base_js+"</script><style>"+self.base_styles+"</style><meta charset='UTF-8'></head><body>"
- 
+            self.total_renditions = 0
+            self._response_init()
             @parameter
             if exit_if_request_not_from_localhost:
                 if self.client[1][0] != '127.0.0.1': 
@@ -120,18 +161,27 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             self.request = self.client[0].recv(1024).decode()
             self.request = self.request.split('\n')[0].split(" ")
             #print(self.request) # for debug
+
             self.send_response=True
         except e:
+            print(e)
             self.send_response=False 
         if self.request_interval_second != 0: sleep(self.request_interval_second)
         return True #todo: should return self.Running: bool to exit the loop
     
     def SetNoneRequest(inout self):
-        self.request = PythonObject(None) #None means event handled (if self.request == True)
+        self.request = PythonObject(None)
     
     def Button(inout self,txt:String,CSS:String="") ->Bool:
-        self.response = str(self.response)+"<div data-click='true' class='Button_' style='"+CSS+"' id='"+txt+"'"+">" + txt + "</div>"
-        if self.request and self.request[1] == "/click_"+txt:
+        var id:String = ""
+        var ptr = txt._as_ptr().bitcast[DType.uint8]()
+        for c in range(len(txt)):
+            id+=str(ptr[c])
+            id+="-"
+        _=txt
+        self.response = str(self.response)+"<div data-click='true' class='Button_' style='"+CSS+"' id='"+id+"'"+">" + txt + "</div>"
+        if self.request and self.request[1] == "/click_"+id:
+            self.should_re_render()
             self.SetNoneRequest()
             return True
         return False
@@ -141,6 +191,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         var id:String = self._ID(val)
         if self.request and self.request[1] == "/click_"+id:
             val = not val
+            self.should_re_render()
             self.SetNoneRequest()
 
         if val: val_repr = "ToggleOn_"
@@ -162,6 +213,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         if self.request and self.request[1].startswith("/change_"+id):
             val = atol(str(self.request[1].split("/")[2])) #split by "/change_"+id ?
             self.SetNoneRequest()
+            self.should_re_render()
             retval=True
         self.response = str(self.response)+"<div class='SliderBox_' style='"+CSSBox+"'><div><span class='SliderLabel_' style='"+CSSLabel+"'>"+label+"</span> "+str(val)+"</div>"
         self.response = str(self.response)+"<input data-change='true' type='range' min='"+min+"' max='"+max+"' value='"+str(val)+"' style='max-width: fit-content;' id='"+id+"'>"
@@ -174,6 +226,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             var tmp2 = "/change_"+id+"/"
             if self.request and self.request[1] == tmp2:
                 val = "" #empty
+                self.should_re_render()
                 self.SetNoneRequest()
             else:
                 if self.request and self.request[1].startswith(tmp2):  
@@ -182,6 +235,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                     for i in range(len(tmp3)):
                         tmp4+=chr(atol(tmp3[i]))
                     val = tmp4
+                    self.should_re_render()
                     self.SetNoneRequest()
             
             self.response = str(self.response)+"<div class='TextInputBox_' style='"+CSSBox+"'>"
@@ -196,6 +250,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):    
             selection = atol(str(self.request[1].split(tmp2)[1]))
+            self.should_re_render()
             self.SetNoneRequest()
         
 
@@ -214,6 +269,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):    
             selection = atol(str(self.request[1].split(tmp2)[1]))
+            self.should_re_render()
             self.SetNoneRequest()
         
 
@@ -235,7 +291,9 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                 result = atol(str(self.request[1].split(tmp2)[1]))
                 if result >= len(selections): raise Error("Selected index >= len(selections)")
                 selected = String(selections[result])
+                self.should_re_render()
                 self.SetNoneRequest()
+                
             except e: print("Error TextChoice widget: "+str(e))
 
         self.response+="""
@@ -278,10 +336,24 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             try:
                 result = "#"+str(self.request[1].split(tmp3)[1])
                 arg=result
+                self.should_re_render()
                 self.SetNoneRequest()
             except e: print("Error ColorSelector widget: "+str(e))
         self.response += "<input class='ColorSelector_' data-colorselector='true' type='color' id='"+id+"' value='"+arg+"'>" 
     
+    def TimeSelector(inout self, inout arg:String):
+        var id = self._ID(arg)
+        var tmp3 = "/timeselector_"+id+"/"
+        if self.request and self.request[1].startswith(tmp3): 
+            try:
+                result = str(self.request[1].split(tmp3)[1])
+                arg=result
+                self.should_re_render()
+                self.SetNoneRequest()
+            except e: print("Error TimeSelector widget: "+str(e))
+        
+        self.response += "<input class='DateSelector_' data-callbackurl='"+tmp3+"' type='time' id='"+id+"' value='"+arg+"' onblur='send_element_value(event)'>" 
+
     #⚠️ not sure at all about the date format (see readme.md)
     def DateSelector(inout self, inout arg:String):
         var id = self._ID(arg)
@@ -290,8 +362,9 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             try:
                 result = str(self.request[1].split(tmp3)[1])
                 arg=result
+                self.should_re_render()
                 self.SetNoneRequest()
-            except e: print("Error ColorSelector widget: "+str(e))
+            except e: print("Error DateSelector widget: "+str(e))
         self.response += "<input class='DateSelector_' data-dateselector='true' type='date' id='"+id+"' value='"+arg+"'>" 
     def NewLine(inout self): self.response+="</br>"
     fn _ID[T:AnyRegType](inout self,inout arg:T)->String:

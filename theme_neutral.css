@@ -63,7 +63,8 @@ html {min-height: 100%;}
 }
 
 .DateSelector_ {
-    margin:4px;border:0;
+    margin:4px;
+    /*border:0;*/
 }
 
 .ColorSelector_ {
@@ -100,4 +101,17 @@ html {min-height: 100%;}
 .Collapsible_ {
     background-color: black;
     color:white;
+}
+
+.rendition_box {
+  z-index: 2;
+  position: absolute;
+  background-color: red;
+  border: 1px solid black;
+  color: white;
+  width: 128px;
+  height: 128px;
+  right: 0;
+  font-size: 100px;
+  top:0px;
 }

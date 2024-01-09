@@ -11,7 +11,3 @@ def main():
         var tmp = iota[DType.float16,SIMD[DType.float16].size](counter)
         GUI.Text(tmp)
         GUI.Text(sqrt(tmp))
-
-        #There is a refresh challenge if events occurs after value drawn
-        #If buttons are here, previously drawn GUI.Text won't reflect the new value
-        #Temporary fix: if GUI.Button("Refresh"): ...

@@ -24,6 +24,7 @@
 
 ## ⚠️ 
 - Server on ```127.0.0.1:8000```
+  - not meant to be a web-framework, but a simple ui
 
 - Dom generated from the content of values
   
@@ -34,15 +35,15 @@
 
 
 
-- Blocking loop by default (can be manually re-configured if needed)
+- Blocking loop by default
 - Exit loop if request from other than "127.0.0.1" by default 
-  - Just an additional safeguard, not been tested! 
-  - Can be re-configured if needed (Bool)
+  - As an additional safeguard (not been tested)
 
-- Need a refreshing mechanism (require more thinking):
-  - In sequential order, if a value is shown, then a slider is defined for it.
-    - When mutated(event), the shown part won't reflect it, because it happened before.
-  - Solution: an update Button() or a new ShouldRefresh feature (todo).
+- ❤️‍🔥 [How 'widgets' attempts(⚠️) to maintain the rendering up-to-date ?](#how-widgets-attempts⚠️-to-maintain-the-rendering-up-to-date)
+  - Will spin the loop multiple times and send only last rendition as response
+  - ```should_re_render()``` for user initiated triggering!
+    - once response is sent, need to wait for next request (blocking socket)
+
 
 
 - Probably more
@@ -68,17 +69,14 @@ from math import iota, sqrt
 def main():
     GUI = Server[base_theme="theme_neutral.css"]()
     var counter = 0
-    while GUI.Event():  #Not necessary to create a window if not needed!
-        if GUI.Button("increment"): counter+=1
-        if GUI.Button("decrement"): counter-=1
-        GUI.Slider("Counter",counter)
+    while GUI.Event():
         var tmp = iota[DType.float16,SIMD[DType.float16].size](counter)
         GUI.Text(tmp)
         GUI.Text(sqrt(tmp))
-
-        #There is a refresh challenge if events occurs after value drawn
-        #If buttons are here, previously drawn GUI.Text won't reflect the new value
-        #Temporary fix: if GUI.Button("Refresh"): ...
+        
+        GUI.Slider("Counter",counter)
+        if GUI.Button("increment"): counter+=1
+        if GUI.Button("decrement"): counter-=1
 ```
 
 &nbsp;
@@ -164,14 +162,23 @@ def main():
 &nbsp;
 
 ## Features
-- Themed with CSS, where widgets have a corresponding base style entry (class attribute)!
-  - Default theme colors are kept familiar (🎁)🔥.
-  - Offers patching on the fly of individual widgets instances styles (keyword arguments).
-  - see [The current styling system](#🎨-the-current-styling-system)
+- 🎨 Themed with CSS
+  - Default theme colors are kept familiar (🎁)🔥
+  - themes.css where widgets have corresponding entries (class)
+  - Customize individual widgets instances styles with keyword arguments
+    - dom element style attribute
+  - [The current styling system](#-the-current-styling-system)
 
 - Button
   - return True when clicked
-  - CSS keyword argument, for the style attribute of the dom element (default: "")
+  - ```CSS``` keyword argument, for the style attribute of the dom element (default: "")
+  - Naïve UTF8 support 🥳
+  - ⚠️ Label 
+    - can't be too long: behaviour unexpected ([Challenges for utf8 support](#challenges-for-utf8-support))
+    - two buttons with the same label lead to wrong event
+      - usually, the first one will receive the event *(even if the second was clicked)*
+
+
     
 
 - TextInput
@@ -186,23 +193,22 @@ def main():
 - Text
 - Slider
   - return True on interaction
-  - mutate the argument (passed as inout) automatically
-  - supports click but not drag yet (the moving window event is triggered)
-  - min=0, max=100 keyword arguments
-  - CSSLabel keyword argument, style attribute of label (default:  "")
-  - CSSBox keyword argument, style attribute of widget container (default: "")
-- Windowing system
+  - ```label:String``` not optional
+  - mutate ```inout val:Int``` argument
+  - ```min:Int=0, max:Int=100``` keyword arguments
+  - ```CSSLabel``` keyword argument, style attribute of label (default:  "")
+  - ```CSSBox``` keyword argument, style attribute of widget container (default: "")
+- Windowing system (optional)
   - ```Moved``` by dragging the title bar! 🥳
-  - 🔥🔥🔥 ```Individually scaled/zoomed``` with mousewheel "scroll" on the titlebar !  
-  - Optionals, the ui can render "on the page" if none, even both!  
+  - 🔥🔥🔥 ```Individually scaled/zoomed``` with mousewheel "scroll" on the titlebar !    
   - Positions and scales on the mojo side in user defined values (```Position(0,0)```)
   - ```CSSTitle``` keyword argument (default to empty)
     - Provides Additional css for the style attribute of the title box
     - Usefull for changing the title bar background-color, for example
 
-- Toggle widget (similar to checkbox)
-   - Mutate a bool passed as argument (inout)
-
+- Toggle
+  - Mutate a bool passed as argument (inout)
+  - Similar to a checkbox
 - ComboBox
    - ID is the inout address of the selection value
    - The selection value is the index of the selected value in the DynamicVector of selections
@@ -246,22 +252,33 @@ def main():
 - NewLine
 
 - 🎨 ColorSelector
-  - One inout string argument (example: ```"#FF0000"```)
-
+  - inout string argument (example: ```var c:String = "#FF0000"```)
+- ⌚ TimeSelector
+  - inout string argument (example: ```var t:String = "23:59"```)
 - 🗓️ DateSelector
-  - ⚠️ not sure at all about the date format:
+  - inout string argument (example: ```var d:String = "2024-01-01"```)
+  - ⚠️ date format:
     - Not same for every machine?
     - Todo: unix timestamp
-  - One inout string argument (example: ```"2024-01-01"```)
-  
+
 - Tag
   - With block implementation, example: ```with GUI.Tag("div"):```
-  - ```style``` keyword argument
-    - To specify inline CSS for the  DOM element style attribute
-        - example: ```"background-color:orange;"```
+  - ```style``` keyword argument (example: ```"background-color:orange;"```)
+
   - ```_additional_attributes``` keyword argument
-    - To specify attributes on the html DOM element 
-        - example: ```"class='otherclass'"```
+    - specify attributes on the html DOM element (example: ```"class='otherclass'"```)
+
+- ❤️‍🔥 should_re_render
+  - mark the rendition created by the current iteration as "out-of-date"
+  - allows for re-rendering before sending a response
+    - maximum is +- ```10``` by default 
+    - widgets also triggers re-renders (if event handled)
+    - more testing is required ⚠️
+  - re-rendering means another iteration of the loop
+  - could trigger more than one (until two successive ones are equals, need testing)
+  - could not be done if already reached maximum (+-)
+
+
 
 - Add html manually:
    - GUI.response += "\<img src=".. some base64
@@ -303,6 +320,77 @@ Anything can be used to generate an id, require more thinking !
 
 
 &nbsp;
+# How 'widgets' attempts(⚠️) to maintain the rendering up-to-date ?
+
+> Please make sure to read this section up to the end!
+ 
+When widgets handles an event, 
+
+they also mark the current response as potentially based on out-of-date values.
+
+So the loop will runs again (one more time, if not reached limit), 
+
+in order to reduce the probability of a page partially containing out-of-date values.
+
+&nbsp;
+
+And more, 
+it should run as many times as needed until two successive renditions are equals!
+
+It is also possible to call *"should re-render anyway"* anywhere, 
+
+making very interesting logic possible: ```GUI.should_re_render()```.
+
+There is an additional safeguard on the maximum number of renditions: ```+/- 10 by default```.
+
+*(in attempt to avoid infinite loops)*
+
+The idea is also to try to reduce the probabilities of interacting with out-of-date values:
+
+**Only the last rendition will be sent for interaction(🔥)!** 
+
+
+
+&nbsp;
+
+On the top right corner, 
+
+the number of iterations done (more or less) to generate the page is shown for debugging.
+
+Note that two successive frames might not be enough, in somes cases,
+
+ but it is a start and feedbacks are welcomed!
+
+Example illustrating the new features: [Simple todo list](demo_simple_todo_list.mojo)
+
+&nbsp;
+
+#### Another example:
+```python
+from ui import *
+def main():
+    GUI = Server[base_theme="theme_neutral.css"]()
+    var color:String = "#3584E4"
+    var favorite_color:String = "#33D17A"
+    var pos = Position(128,128,2.0)
+    while GUI.Event(): 
+        with GUI.Window("Test",pos,"background-color:"+color):
+            if color == favorite_color:
+                color = "#FFFFAA"
+                GUI.should_re_render()
+            GUI.Text(color)
+            GUI.Text(favorite_color)
+            if GUI.Button(" ✅ Set as favorite color "):
+                favorite_color = color 
+            GUI.ColorSelector(color)
+```
+Note that if the favorite color is clicked two times in a row,
+
+The additional safeguard did prevent the infinite loop! *(see top right corner)*
+
+
+
+&nbsp;
 
 ## Characteristics:
 ### 🏜️ Less dependencies
@@ -329,16 +417,7 @@ Anything can be used to generate an id, require more thinking !
 
 
 
-&nbsp;
 
-## Current implementation challenges:
-- Can't do nested type to create a tree of dom elements without pointers, better to wait a little for that.
-  - ( ```struct Element(CollectionElement): var elements: DynamicVector[Self]``` )
-  - the dom could be transfered as json and re-generated safer-ly in a loop.
-
-- ```onchange``` is used instead of ```oninput``` (to not keep track of dom element focus, temporarely)
-  - solved by generating serialized dom as nested nodes, and "morphing" it
-- More
 
 &nbsp;
 ## Challenges for UTF8 support:
@@ -365,9 +444,9 @@ Need more thinking! any ideas ?
 # 🎨 The current styling system
 The idea is to provide choices of default CSS to act as a base and include theses inside the ```<style>``` tag.
 
-The default css of the widgets is 'defined' with the class attribute, this is important.
+The default css of the widgets is 'defined' with the class attribute.
 
-Because it means it is possible to 'patch' it on the fly with a style attribute next to it (on the right)!
+It is possible to 'patch' it on the fly with a style attribute next to it (on the right)!
 
 This is how individual widgets instances can be customized on top of a base style (example, another font-size for that button).
 
@@ -403,7 +482,7 @@ GUI = Server[base_theme="theme_neutral.css"]()
 
 Additionally, the theme can specified on the command-line:
 
-*(Thanks to Carl Caulkett for the suggestion 🔥)*
+*(Thanks to [Carl Caulkett](https://github.com/carlca/) for the suggestion 🔥)*
 
 ```
 mojo run -D mojo_ui_html_theme="theme_neutral.css" demo_principal.mojo
@@ -421,3 +500,14 @@ mojo run -D mojo_ui_html_theme="theme_neutral.css" demo_principal.mojo
 - ```Drag and drop``` capabilities (example: list to list)
 
 - ✏️
+
+&nbsp;
+
+## Current implementation challenges:
+- Can't do nested type to create a tree of dom elements without pointers, better to wait a little for that.
+  - ( ```struct Element(CollectionElement): var elements: DynamicVector[Self]``` )
+  - the dom could be transfered as json and re-generated safer-ly in a loop.
+
+- ```onchange``` is used instead of ```oninput``` (to not keep track of dom element focus, temporarely)
+  - solved by generating serialized dom as nested nodes, and "morphing" it
+- More

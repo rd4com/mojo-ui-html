@@ -100,3 +100,15 @@ html {min-height: 100%;}
     color:black;
 }
 
+.rendition_box {
+    z-index: 2;
+    position: absolute;
+    background-color: red;
+    border: 1px solid black;
+    color: white;
+    width: 128px;
+    height: 128px;
+    right: 0;
+    font-size: 100px;
+    top:0px;
+  }
