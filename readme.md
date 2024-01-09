@@ -39,7 +39,7 @@
 - Exit loop if request from other than "127.0.0.1" by default 
   - As an additional safeguard (not been tested)
 
-- ❤️‍🔥 [How 'widgets' attempts(⚠️) to maintain the rendering up-to-date ?](#how-widgets-attempts⚠️-to-maintain-the-rendering-up-to-date)
+- ❤️‍🔥 [How 'widgets' attempts(⚠️) to maintain the rendering up-to-date ?](#how-widgets-attempts%EF%B8%8F-to-maintain-the-rendering-up-to-date-)
   - Will spin the loop multiple times and send only last rendition as response
   - ```should_re_render()``` for user initiated triggering!
     - once response is sent, need to wait for next request (blocking socket)
