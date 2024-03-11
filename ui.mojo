@@ -391,7 +391,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
     def NewLine(inout self): self.response+="</br>"
     fn _ID[T:AnyRegType](inout self,inout arg:T)->String:
         var tmp:Pointer[T] = __get_lvalue_as_address(arg)
-        var tmp2:Int = tmp.__as_index()
+        var tmp2:Int = int(tmp)
         var id:String = str(tmp2)
         return id
     fn Tag(inout self,tag:String,style:String="",_additional_attributes:String=" ")->WithTag:
@@ -456,7 +456,7 @@ struct Window:
     var titlecss: String
     fn __enter__(self):
         try:
-            var id = str(self.pos.__as_index())#str(hash(self.name._as_ptr(),len(self.name)))
+            var id = str(self.pos)#str(hash(self.name._as_ptr(),len(self.name)))
             var positions:String = ""
             var req = __get_address_as_lvalue(self.request.address)
             
