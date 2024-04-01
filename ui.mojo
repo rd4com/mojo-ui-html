@@ -206,7 +206,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         except e: print(e)
   
     def Window(inout self, name: String,inout pos:Position,CSSTitle:String="")->Window:
-        let ptr:Pointer[PythonObject] = __get_lvalue_as_address(self.request)
+        var ptr:Pointer[PythonObject] = __get_lvalue_as_address(self.request)
         return Window(__get_lvalue_as_address(self.response), name,__get_lvalue_as_address(pos),ptr,CSSTitle)
 
     def Slider(inout self,label:String,inout val:Int, min:Int = 0, max:Int = 100,CSSLabel:String="",CSSBox:String="")->Bool:
@@ -252,7 +252,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         except e: print("Error TextInput widget: "+ str(e))
         return ret_val
         
-    def ComboBox(inout self,label:String,values:DynamicVector[String],inout selection:Int)->Bool:
+    def ComboBox(inout self,label:String,values:List[String],inout selection:Int)->Bool:
         var ret_val = False
         var id:String = self._ID(selection)
         var tmp2 = "/combobox_"+id+"/"
@@ -329,7 +329,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
     def Ticker(inout self,t:String,width:Int=200):
         self.response+="<div class='Ticker_' style='width:"+str(width)+"px'><marquee>"+t+"</marquee></div>"
     def Digitize(inout self, number: Int)->String :
-        var digits = StaticTuple[10,StringLiteral]("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
+        var digits = StaticTuple[StringLiteral,10]("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
         tmp = str(number)
         var res:String = ""
         for i in range(len(tmp)):
@@ -403,12 +403,12 @@ struct ScrollableArea:
     var height: Int
     fn __enter__(self):
         try:
-            __get_address_as_lvalue(self.reponse.address) += "<div class='ScrollableArea_' style='height:"+str(self.height)+"px;'>"
+            self.reponse[] += "<div class='ScrollableArea_' style='height:"+str(self.height)+"px;'>"
         except e: print("Error ScrollableArea __enter__ widget:"+str(e))
-    fn __exit__( self): self.close()
+    fn __exit__( self): _ = self.close()
     fn close(self) -> Bool:
         try:
-            __get_address_as_lvalue(self.reponse.address) += "</div>"
+            self.reponse[] += "</div>"
         except e: print("Error ScrollableArea() widget:"+str(e)) 
         return True
     fn __exit__( self, err:Error)->Bool: return self.close()
@@ -419,12 +419,12 @@ struct Collapsible:
     var CSS: String
     fn __enter__(self):
         try:
-            __get_address_as_lvalue(self.reponse.address) += "<details><summary class='Collapsible_' style='"+self.CSS+"'>"+self.title+"</summary>"
+            self.reponse[] += "<details><summary class='Collapsible_' style='"+self.CSS+"'>"+self.title+"</summary>"
         except e: print("Window __enter__ widget:"+str(e))
-    fn __exit__( self): self.close()
+    fn __exit__( self): _ = self.close()
     fn close(self) -> Bool:
         try:
-            __get_address_as_lvalue(self.reponse.address) += "</details>"
+            self.reponse[] += "</details>"
         except e: print("Error Collapsible() widget:"+str(e)) 
         return True
     fn __exit__( self, err:Error)->Bool: return self.close()
@@ -436,7 +436,7 @@ struct WithTag:
     var style:String
     var _additional_attributes:String
     fn __enter__(self):
-        try : __get_address_as_lvalue(self.data.address) += "<"+self.tag+" "+self._additional_attributes+" style='" + self.style + "'>"
+        try : self.data[] += "<"+self.tag+" "+self._additional_attributes+" style='" + self.style + "'>"
         except e: print(e)
     fn __exit__( self): self.close()
     fn __exit__( self, err:Error)->Bool: 
@@ -444,7 +444,7 @@ struct WithTag:
         print(err)
         return False
     fn close(self):
-        try : __get_address_as_lvalue(self.data.address) += "</"+self.tag+">"
+        try : self.data[] += "</"+self.tag+">"
         except e: print(e)
 
 @value
@@ -458,33 +458,33 @@ struct Window:
         try:
             var id = str(self.pos)#str(hash(self.name._as_ptr(),len(self.name)))
             var positions:String = ""
-            var req = __get_address_as_lvalue(self.request.address)
+            var req = self.request[]
             
             if req and req[1].startswith("/window_scale_"+id): 
                 var val = req[1].split("/window_scale_"+id)[1].split("/")
                 if val[1] == "1":
-                    __get_address_as_lvalue(self.pos.address).scale+=0.1
+                    self.pos[].scale+=0.1
                 else:
-                    if __get_address_as_lvalue(self.pos.address).scale >=0.2:
-                        __get_address_as_lvalue(self.pos.address).scale-=0.1
-                __get_address_as_lvalue(self.request.address) = PythonObject(None) #possibly not good
+                    if self.pos[].scale >=0.2:
+                        self.pos[].scale-=0.1
+                self.request[] = PythonObject(None) #possibly not good
             else:
                 if req and req[1].startswith("/window_"+id): 
                     var val = req[1].split("/window_"+id)[1].split("/")
-                    __get_address_as_lvalue(self.pos.address).x += atol(str(val[1])) #todo try: block for atol
-                    __get_address_as_lvalue(self.pos.address).y += atol(str(val[2]))
-                    __get_address_as_lvalue(self.request.address) = PythonObject(None) #possibly not good
-            positions += "left:"+str(__get_address_as_lvalue(self.pos.address).x)+"px;"
-            positions += "top:"+str(__get_address_as_lvalue(self.pos.address).y)+"px;"
-            var scale:String = str(__get_address_as_lvalue(self.pos.address).scale)
-            __get_address_as_lvalue(self.content.address) += "<div  ondragstart='drag(event)' class='Window_' style='transform-origin: 0% 0% 0px;transform:scale("+scale+");" +positions+ ";' id='"+id +"'>"
-            __get_address_as_lvalue(self.content.address) += "<div data-zoomlevel='1.O' onwheel='zoom_window(event)' onmouseover='DragOn(event)'  onmouseout='DragOff(event)' data-istitlebar='true' class='WindowTitle_' style='cursor:grab;"+self.titlecss+"'>➖ ❌ " + self.name + "&nbsp;</div>"
-            __get_address_as_lvalue(self.content.address) += "<div class='WindowContent_' style=''>"
+                    self.pos[].x += atol(str(val[1])) #todo try: block for atol
+                    self.pos[].y += atol(str(val[2]))
+                    self.request[] = PythonObject(None) #possibly not good
+            positions += "left:"+str(self.pos[].x)+"px;"
+            positions += "top:"+str(self.pos[].y)+"px;"
+            var scale:String = str(self.pos[].scale)
+            self.content[] += "<div  ondragstart='drag(event)' class='Window_' style='transform-origin: 0% 0% 0px;transform:scale("+scale+");" +positions+ ";' id='"+id +"'>"
+            self.content[] += "<div data-zoomlevel='1.O' onwheel='zoom_window(event)' onmouseover='DragOn(event)'  onmouseout='DragOff(event)' data-istitlebar='true' class='WindowTitle_' style='cursor:grab;"+self.titlecss+"'>➖ ❌ " + self.name + "&nbsp;</div>"
+            self.content[] += "<div class='WindowContent_' style=''>"
         except e: print("Window __enter__ widget:"+str(e))
-    fn __exit__( self): self.close()
+    fn __exit__( self): _ = self.close()
     fn close(self) -> Bool:
         try:
-            __get_address_as_lvalue(self.content.address) += "</div></div>"
+            self.content[] += "</div></div>"
         except e: print("Window close() widget:"+str(e)) 
         return True
     fn __exit__( self, err:Error)->Bool: return self.close()

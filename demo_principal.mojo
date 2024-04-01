@@ -16,8 +16,8 @@ def main():
     POS3 = Position(32,512)
     POS4 = Position(512,16)
 
-    combovalues = DynamicVector[String]()
-    for i in range(5): combovalues.push_back("Value "+str(i))
+    combovalues = List[String]()
+    for i in range(5): combovalues.append("Value "+str(i))
     selection = 1
 
     while GUI.Event():
