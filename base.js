@@ -1,6 +1,5 @@
 
 
-
 ['click','input','change'].forEach(function(evt) {
     document.addEventListener(evt, function (event) {         
         var id = event.target.getAttribute('id'); 

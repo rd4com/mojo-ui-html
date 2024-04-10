@@ -168,7 +168,29 @@ def main():
   - Customize individual widgets instances styles with keyword arguments
     - dom element style attribute
   - [The current styling system](#-the-current-styling-system)
+  - helper function with variadic keyword arguments
+    ```python
+    #Example
+    MyStyleOne = CSS(color="blue",`font-size`=32)
+    var MyStyleTwo = CSS(
+      `text-shadow` = "1px 1px 1px yellow",
+      `font-size` = "32px",
+      background = "linear-gradient(#ffff00, #f90)"
+    )
+    ```
+    - *see [demo_keyboard_and_css.mojo](./demo_keyboard_and_css.mojo)*
 
+- 🆕 Keyboard event handler
+  - Send events only if the user is not already interacting with a dom element.
+    - That way, is is still possible to interact with an Input element independently.
+  - ```Server.keyboard_handler``` is False by default, as additional safeguard
+    ```python
+    k = GUI.KeyDown()
+    if k.isa[String]():   #special keys (Backspace,ArrowLeft,..)
+    if k.isa[Int]():      #Normal characters: chr(k.take[Int]())
+    if k.isa[NoneType](): #No sent events or keyboard_handler is False
+    ```
+  - see [demo_keyboard_and_css.mojo](./demo_keyboard_and_css.mojo)
 - Button
   - return True when clicked
   - ```CSS``` keyword argument, for the style attribute of the dom element (default: "")
@@ -200,9 +222,17 @@ def main():
   - ```CSSLabel``` keyword argument, style attribute of label (default:  "")
   - ```CSSBox``` keyword argument, style attribute of widget container (default: "")
 - Windowing system (optional)
+  - ```Minimized``` by clicking the ```-``` icon on the title bar
+    (stored in Position struct)
+    ```python
+    #example, var MyWindow: Position, var GUI:Server
+    with GUI.Window("The Title",MyWindow):
+      if MyWindow.opened: GUI.Text("opened")
+    ```
   - ```Moved``` by dragging the title bar! 🥳
   - 🔥🔥🔥 ```Individually scaled/zoomed``` with mousewheel "scroll" on the titlebar !    
   - Positions and scales on the mojo side in user defined values (```Position(0,0)```)
+    - ```Position(0,0).opened==False``` if window is minimized
   - ```CSSTitle``` keyword argument (default to empty)
     - Provides Additional css for the style attribute of the title box
     - Usefull for changing the title bar background-color, for example

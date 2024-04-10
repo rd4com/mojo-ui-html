@@ -1,6 +1,7 @@
 from sys import param_env
 from python import Python
 from time import sleep
+from utils.variant import Variant
 
 struct Accessibility:
     alias Success:String = "✅"
@@ -40,10 +41,12 @@ struct Position:
     var x:Int
     var y:Int
     var scale:Float64
+    var opened:Bool
     fn __init__(inout self,x:Int,y:Int,scale:Float64=1.0):
         self.x =x
         self.y =y
         self.scale = scale
+        self.opened = True
 
 @value
 struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_theme","theme.css"](), exit_if_request_not_from_localhost:Bool = True]:
@@ -63,8 +66,11 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
 
     var send_response : Bool
     var request_interval_second: Float64
+    var keyboard_handler:Bool
     var base_styles: String
     var base_js: String
+    var keyboard_handler_js: String
+    
     
     fn __init__(inout self) raises:
         try:
@@ -80,39 +86,69 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         except e:
             print("Error importing base.js: " + str(e))
             self.base_js = ""
-            raise(e)       
+            raise(e) 
+        try:
+            with open("keyboard_handler.js","r") as f:
+                self.keyboard_handler_js = f.read()
+        except e:
+            print("Error importing keyboard_handler.js: " + str(e))
+            self.keyboard_handler_js = ""
+            raise(e) 
+            
         self.server  = PythonObject(None)
         self.client = PythonObject(None)
         self.response = PythonObject(None)
         self.request = PythonObject(None)
         
+       
+
         self.last_rendition = " "
         self.re_render_current=False
         self.total_renditions = 0
         self.send_response=False
         self.request_interval_second=0.1
+        self.keyboard_handler=False
         self.start()
 
     def start(inout self, host:StringLiteral = "127.0.0.1", port:Int = 8000):
+        
         var socket = Python.import_module("socket")
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        r = Reference(self.server)
+        r[] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        r[].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
         self.server.bind((host, port))
         #self.server.setblocking(0) #Blocking by default
+        _=socket
         self.server.listen(1)
         print("http://"+str(host)+":"+port)
+    
     fn __del__(owned self):
         try: self.server.close() except e: print(e)
     
     fn _response_init(inout self):
         try:
             self.response = PythonObject('HTTP/1.0 200 OK\n\n')
-            self.response += "<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head><link rel='icon' href='data:;base64,='><script>"+self.base_js+"</script><style>"+self.base_styles+"</style><meta charset='UTF-8'></head><body>"
+            if not self.keyboard_handler:
+                self.keyboard_handler_js = ""
+            self.response += "<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head><link rel='icon' href='data:;base64,='><script>"+self.base_js+self.keyboard_handler_js+"</script><style>"+self.base_styles+"</style><meta charset='UTF-8'></head><body>"
         except e: print("error, _reponse_init:"+str(e))
     def should_re_render(inout self): self.re_render_current = True
     
-    fn Event(inout self) -> Bool: 
+    fn Span(inout self, arg:String):
+        self.RawHtml("<span>"+arg+"</span")
+    fn RawHtml(inout self,arg:String):
+        try : self.response += arg except e:print(e)
 
+    fn AudioBase64Wav(inout self, b64wav:String):
+        self.RawHtml("<audio controls='controls' autobuffer='autobuffer' autoplay='autoplay'>")
+        self.RawHtml("<source src='data:audio/wav;base64,"+b64wav+"' />")
+        self.RawHtml("</audio>")
+
+    fn Event(inout self) -> Bool: 
+        
         if self.send_response == True: 
             self.total_renditions+=1
             var current_rendition:String=" "
@@ -132,6 +168,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                 if self.total_renditions >10:
                     different=False
                 
+
                 if different:
                     self.last_rendition = current_rendition
                     self._response_init()
@@ -139,7 +176,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
                     # need counter to stop the loop after 
                     return True
                 else:
-                    self.response += "<div class='rendition_box' id='_rendition_status'>"+str(self.total_renditions)+"</div>"
+                    #self.response += "<div class='rendition_box' id='_rendition_status'>"+str(self.total_renditions)+"</div>"
                     self.response+= "</body></html>"
                     self.client[0].sendall(self.response.encode())
                     self.client[0].close()
@@ -150,27 +187,57 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             
 
         try: #if error is raised in the block, no request or an error
-            self.client = self.server.accept()
+            #could do loop here
+            
+            Reference(self.client)[] = self.server.accept()
+
             self.total_renditions = 0
+            
             self._response_init()
+            
             @parameter
             if exit_if_request_not_from_localhost:
                 if self.client[1][0] != '127.0.0.1': 
                     print("Exit, request from: "+str(self.client[1][0]))
                     return False
-            self.request = self.client[0].recv(1024).decode()
-            self.request = self.request.split('\n')[0].split(" ")
-            #print(self.request) # for debug
+ 
+            Reference(self.request)[] = self.client[0].recv(1024).decode()
+            Reference(self.request)[] = self.request.split('\n')[0].split(" ")
 
             self.send_response=True
         except e:
             print(e)
             self.send_response=False 
         if self.request_interval_second != 0: sleep(self.request_interval_second)
+        
         return True #todo: should return self.Running: bool to exit the loop
     
     def SetNoneRequest(inout self):
         self.request = PythonObject(None)
+
+    fn KeyDown(inout self)-> Variant[Int,String,NoneType]:
+        if not self.keyboard_handler: return None
+        try:
+            if 
+                Python.type(self.request) is Python.evaluate("list")
+                and 
+                self.request[1].startswith("/keyboard/down/")
+            :
+                var tmp:PythonObject = self.request[1].split("/")
+                if len(tmp)>=3:
+                    if not str(tmp[3]).startswith("keydown-"):
+                        var res = atol(str(tmp[3]))
+                        self.SetNoneRequest()
+                        return res
+                    else:
+                        var res = str(tmp[3]).split("keydown-")[1]
+                        self.SetNoneRequest()
+                        return res
+        except e: 
+            print(e)
+            return None #Int(0)
+        return None #Int(0)
+        
     
     def Button(inout self,txt:String,CSS:String="") ->Bool:
         var id:String = ""
@@ -185,7 +252,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             self.SetNoneRequest()
             return True
         return False
-    
+
     def Toggle(inout self,inout val:Bool,label:String)->Bool:
         var res:Bool = False
         var val_repr = "ToggleOff_"
@@ -207,7 +274,13 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
   
     def Window(inout self, name: String,inout pos:Position,CSSTitle:String="")->Window:
         var ptr:Pointer[PythonObject] = __get_lvalue_as_address(self.request)
-        return Window(__get_lvalue_as_address(self.response), name,__get_lvalue_as_address(pos),ptr,CSSTitle)
+        return Window(
+            __get_lvalue_as_address(self.response), 
+            name,
+            __get_lvalue_as_address(pos),
+            ptr,
+            CSSTitle
+        )
 
     def Slider(inout self,label:String,inout val:Int, min:Int = 0, max:Int = 100,CSSLabel:String="",CSSBox:String="")->Bool:
         #Todo: if new_value > max: new_value = max, check if min<max 
@@ -302,7 +375,8 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         if self.request and self.request[1].startswith(tmp2): 
             try:
                 result = atol(str(self.request[1].split(tmp2)[1]))
-                if result >= len(selections): raise Error("Selected index >= len(selections)")
+                if result >= len(selections): 
+                    raise Error("Selected index >= len(selections)")
                 selected = String(selections[result])
                 self.should_re_render()
                 self.SetNoneRequest()
@@ -328,6 +402,7 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         return "<marquee>"+t+"</marquee>"
     def Ticker(inout self,t:String,width:Int=200):
         self.response+="<div class='Ticker_' style='width:"+str(width)+"px'><marquee>"+t+"</marquee></div>"
+    
     def Digitize(inout self, number: Int)->String :
         var digits = StaticTuple[StringLiteral,10]("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
         tmp = str(number)
@@ -336,11 +411,39 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
             res+=digits[(ord(tmp[i])-48)]
         return(res)
 
-    def Collapsible(inout self,title:String,CSS:String="")->Collapsible: return Collapsible(title,__get_lvalue_as_address(self.response),CSS)
-    def Table(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"table","margin:4px;border:1px solid black;"," ")
-    def Row(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"tr","border:1px solid black;"," ") 
-    def Cell(inout self)->WithTag: return WithTag(__get_lvalue_as_address(self.response),"td","border:1px solid black;"," ") 
-    def ScrollableArea(inout self,height:Int=128)->ScrollableArea: return ScrollableArea(__get_lvalue_as_address(self.response),height)
+    def Collapsible(inout self,title:String,CSS:String="")->Collapsible: 
+        return Collapsible(
+            title,
+            __get_lvalue_as_address(self.response),
+            CSS
+        )
+
+    def Table(inout self)->WithTag: 
+        return WithTag(
+            __get_lvalue_as_address(self.response),
+            "table",
+            "margin:4px;border:1px solid black;",
+            " "
+        )
+    
+    def Row(inout self)->WithTag: 
+        return WithTag(
+            __get_lvalue_as_address(self.response),
+            "tr",
+            "border:1px solid black;",
+            " "
+        ) 
+    
+    def Cell(inout self)->WithTag:
+        return WithTag(
+            __get_lvalue_as_address(self.response),
+            "td",
+            "border:1px solid black;",
+            " "
+        )
+
+    def ScrollableArea(inout self,height:Int=128)->ScrollableArea: 
+        return ScrollableArea(__get_lvalue_as_address(self.response),height)
     
     def ColorSelector(inout self, inout arg:String)->Bool:
         var ret_val = False
@@ -389,13 +492,28 @@ struct Server[base_theme:StringLiteral=param_env.env_get_string["mojo_ui_html_th
         self.response += "<input class='DateSelector_' data-dateselector='true' type='date' id='"+id+"' value='"+arg+"'>" 
         return ret_val
     def NewLine(inout self): self.response+="</br>"
+    
     fn _ID[T:AnyRegType](inout self,inout arg:T)->String:
         var tmp:Pointer[T] = __get_lvalue_as_address(arg)
-        var tmp2:Int = int(tmp)
+        var z = Pointer[Int]()
+        
+        var tmp2:Int = int(tmp) #tmp.__as_index()
         var id:String = str(tmp2)
         return id
-    fn Tag(inout self,tag:String,style:String="",_additional_attributes:String=" ")->WithTag:
-        return WithTag(__get_lvalue_as_address(self.response),tag,style,_additional_attributes)
+    
+    fn Tag(
+        inout self,
+        tag:String,
+        style:String="",
+        _additional_attributes:String=" "
+    ) -> WithTag
+        :
+        return WithTag(
+            __get_lvalue_as_address(self.response),
+            tag,
+            style,
+            _additional_attributes
+        )
 
 @value
 struct ScrollableArea:
@@ -405,13 +523,16 @@ struct ScrollableArea:
         try:
             self.reponse[] += "<div class='ScrollableArea_' style='height:"+str(self.height)+"px;'>"
         except e: print("Error ScrollableArea __enter__ widget:"+str(e))
-    fn __exit__( self): _ = self.close()
+    
+    fn __exit__( self): _=self.close()
+    fn __exit__( self, err:Error)->Bool: return self.close()
+    
     fn close(self) -> Bool:
         try:
             self.reponse[] += "</div>"
         except e: print("Error ScrollableArea() widget:"+str(e)) 
         return True
-    fn __exit__( self, err:Error)->Bool: return self.close()
+    
 @value
 struct Collapsible:
     var title: String
@@ -421,13 +542,16 @@ struct Collapsible:
         try:
             self.reponse[] += "<details><summary class='Collapsible_' style='"+self.CSS+"'>"+self.title+"</summary>"
         except e: print("Window __enter__ widget:"+str(e))
-    fn __exit__( self): _ = self.close()
+    
+    fn __exit__( self): _=self.close()
+    fn __exit__( self, err:Error)->Bool: return self.close()
+    
     fn close(self) -> Bool:
         try:
             self.reponse[] += "</details>"
         except e: print("Error Collapsible() widget:"+str(e)) 
         return True
-    fn __exit__( self, err:Error)->Bool: return self.close()
+    
 
 @value
 struct WithTag:
@@ -436,7 +560,8 @@ struct WithTag:
     var style:String
     var _additional_attributes:String
     fn __enter__(self):
-        try : self.data[] += "<"+self.tag+" "+self._additional_attributes+" style='" + self.style + "'>"
+        try : 
+            self.data[] += "<"+self.tag+" "+self._additional_attributes+" style='" + self.style + "'>"
         except e: print(e)
     fn __exit__( self): self.close()
     fn __exit__( self, err:Error)->Bool: 
@@ -454,7 +579,7 @@ struct Window:
     var pos: Pointer[Position]
     var request: Pointer[PythonObject]
     var titlecss: String
-    fn __enter__(self):
+    fn __enter__(self) -> Pointer[Position]:
         try:
             var id = str(self.pos)#str(hash(self.name._as_ptr(),len(self.name)))
             var positions:String = ""
@@ -467,24 +592,42 @@ struct Window:
                 else:
                     if self.pos[].scale >=0.2:
                         self.pos[].scale-=0.1
-                self.request[] = PythonObject(None) #possibly not good
-            else:
-                if req and req[1].startswith("/window_"+id): 
+                self.request[] = PythonObject(None) #TODO: possibly not good
+            elif req and req[1].startswith("/window_"+id): 
                     var val = req[1].split("/window_"+id)[1].split("/")
                     self.pos[].x += atol(str(val[1])) #todo try: block for atol
                     self.pos[].y += atol(str(val[2]))
-                    self.request[] = PythonObject(None) #possibly not good
+                    self.request[] = PythonObject(None) #TODO: possibly not good
+            elif req and req[1].startswith("/click_/window_toggle_"+id): 
+                self.pos[].opened = not self.pos[].opened 
+                self.request[] = PythonObject(None)
             positions += "left:"+str(self.pos[].x)+"px;"
             positions += "top:"+str(self.pos[].y)+"px;"
             var scale:String = str(self.pos[].scale)
             self.content[] += "<div  ondragstart='drag(event)' class='Window_' style='transform-origin: 0% 0% 0px;transform:scale("+scale+");" +positions+ ";' id='"+id +"'>"
-            self.content[] += "<div data-zoomlevel='1.O' onwheel='zoom_window(event)' onmouseover='DragOn(event)'  onmouseout='DragOff(event)' data-istitlebar='true' class='WindowTitle_' style='cursor:grab;"+self.titlecss+"'>➖ ❌ " + self.name + "&nbsp;</div>"
+            self.content[] += "<div data-zoomlevel='1.O' onwheel='zoom_window(event)' onmouseover='DragOn(event)'  onmouseout='DragOff(event)' data-istitlebar='true' class='WindowTitle_' style='cursor:grab;"+self.titlecss+"'><span data-click='true' style='cursor:s-resize;' id='/window_toggle_"+str(id)+"'>➖</span> ❌ " + self.name + "&nbsp;</div>"
             self.content[] += "<div class='WindowContent_' style=''>"
         except e: print("Window __enter__ widget:"+str(e))
-    fn __exit__( self): _ = self.close()
+        return self.pos
+    fn __exit__( self): _=self.close()
     fn close(self) -> Bool:
         try:
             self.content[] += "</div></div>"
         except e: print("Window close() widget:"+str(e)) 
         return True
-    fn __exit__( self, err:Error)->Bool: return self.close()
+    fn __exit__( self, err:Error)->Bool: return self.close()    
+
+alias CSS_T=Variant[StringLiteral,Int]
+fn CSS(**kwargs: CSS_T) -> String:
+    var res:String =";"
+    try:
+        for i in kwargs:
+            var kw=i[]
+            if kwargs[kw].isa[StringLiteral](): 
+                res+= kw+":"
+                res+= String(kwargs[kw].take[StringLiteral]()) +";"
+            if kwargs[kw].isa[Int]():
+                res+= kw+":"
+                res+= String(kwargs[kw].take[Int]()) +";"
+    except e: print("CSS function"+str(e))
+    return res
