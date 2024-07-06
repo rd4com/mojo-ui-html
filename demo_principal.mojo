@@ -69,4 +69,3 @@ def main():
             with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
                 GUI.Text("❤️‍🔥")
             GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
-            

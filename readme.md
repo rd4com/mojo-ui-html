@@ -1,4 +1,6 @@
+> Nightly branch
 
+    Some features need fixes: raw keyboard and utf8 support
 
 # mojo-ui-html
 

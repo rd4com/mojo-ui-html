@@ -1,5 +1,5 @@
 from ui import *
-
+# TODO: Fix this example, it is temporarely broken
 def main():
     GUI = Server()
     GUI.request_interval_second=0.0001 #control the loop throttle (careful)
@@ -19,17 +19,17 @@ def main():
             var K = k.take[String]()
             lastK = K
             if K == "ArrowLeft": 
-                ElementPos = (ElementPos.get[0]()-16,ElementPos.get[1]())
-            if K == "ArrowUp": ElementPos = (ElementPos.get[0](),ElementPos.get[1]()-16)
-            if K == "ArrowDown": ElementPos = (ElementPos.get[0](),ElementPos.get[1]()+16)
-            if K == "ArrowRight": ElementPos = (ElementPos.get[0]()+16,ElementPos.get[1]())
+                ElementPos = (ElementPos[0]-16,ElementPos[1])
+            if K == "ArrowUp": ElementPos = (ElementPos[0],ElementPos[1]-16)
+            if K == "ArrowDown": ElementPos = (ElementPos[0],ElementPos[1]+16)
+            if K == "ArrowRight": ElementPos = (ElementPos[0]+16,ElementPos[1])
         
         with GUI.Tag(
             "Div",
             CSS(
                 position="absolute",
-                left=ElementPos.get[0](),
-                top=ElementPos.get[1](),
+                left=ElementPos[0],
+                top=ElementPos[1],
                 `font-size`=64
             )
         ): GUI.RawHtml("🗿")
