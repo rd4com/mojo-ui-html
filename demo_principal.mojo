@@ -9,7 +9,7 @@ def main():
     colorvalue = String("#1C71D8")
     datevalue = String("2024-01-01")
 
-    GUI = Server()  #Server[base_theme="theme_neutral.css"]()
+    GUI = Server()
 
     POS = Position(1,1)
     POS2 = Position(1,350)
@@ -20,7 +20,7 @@ def main():
     for i in range(5): combovalues.append("Value "+str(i))
     selection = 1
 
-    while GUI.Event():
+    while GUI.NeedNewRendition():
         with GUI.Window("Debug window",POS):
             GUI.Text("Hello world 🔥")
             if GUI.Button("Button"): val = 50 

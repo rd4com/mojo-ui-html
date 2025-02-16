@@ -1,0 +1,11 @@
+[project]
+authors = ["rd4com <144297616+rd4com@users.noreply.github.com>"]
+channels = ["https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
+name = "mojo-ui-html"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+max = ">=25.1.0,<26"

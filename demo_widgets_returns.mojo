@@ -11,7 +11,7 @@ def main():
     var b:Bool = False
     var message:String = "Empty"
     
-    while GUI.Event():
+    while GUI.NeedNewRendition():
         with GUI.Window(message,pos,"background-color:"+c):
             GUI.Text('s = '+s)
             GUI.Text('i = '+str(i))

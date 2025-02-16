@@ -1,4 +1,27 @@
-
+function plot_click(event, event_name){
+    var x = event.clientX;
+    event_and_refresh("/custom_event_"+event_name+"/L"+x)
+}
+function plot_click2(event, event_name){
+    event.preventDefault()
+    var x = event.clientX;
+    event_and_refresh("/custom_event_"+event_name+"/R"+x)
+}
+window.onload = function () {
+    window.scrollTo(0,localStorage.getItem("scrollpos"))
+    // var elements = []
+    // var min_volume = 1.0/16.0
+    // for (let i = 0; i < 16; i++) {
+    //     var tmp_element = document.getElementById("AudioPlayerSpecial"+i);
+    //     if ( tmp_element != null && typeof tmp_element !== "undefined"){
+    //         tmp_element.volume = min_volume*parseFloat(tmp_element.dataset.volume)
+    //         elements.push(tmp_element)
+    //     }
+    // }
+    // for (var i=0; i<elements.length; i++) {
+    //     elements[i].play();
+    // }
+};
 
 ['click','input','change'].forEach(function(evt) {
     document.addEventListener(evt, function (event) {         
@@ -91,10 +114,12 @@ function zoom_window(e){
     //window.location.href = "/window_scale_"+e.target.parentElement.id+"/"+e.target.dataset.zoomlevel
     e.preventDefault()
 }
-
 function event_and_refresh(data){
     window.location.href=data
 }
 function send_element_value(event){
     window.location.href=event.target.dataset.callbackurl+event.target.value
 }
+window.onscroll = function () {
+    localStorage.setItem("scrollpos", window.scrollY)
+};

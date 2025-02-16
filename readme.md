@@ -1,6 +1,132 @@
-### 🆕 This repo now has a nightly branch!
+#### 🆕 
 
-It serves as the `dev` branch and is developped using mojo nightly.
+- `mojoproject.toml` for `magic` !
+- 🔁 Updated for `25.1.0` 🔥!
+
+&nbsp;
+
+#### ➕ Smaller changes/new features
+- UI remember scroll position between events and refreshes
+- Any window can be minimized/expanded into/from a titlebar with the `➖` button
+- Move some parameters from `Server` to `param_get_env`
+  - `mojo run -D mojo_ui_html_theme="theme_neutral.css"`
+  - `exit_if_request_not_from_localhost` (default: `True`)
+- Add custom html easily 
+  - `GUI.RawHtml("<h1>Page</h1>")`
+- `GUI.CustomEvent('MyEvent')`
+
+  see [demo_custom_events.mojo](./demo_custom_events.mojo)
+
+  (Just a start, not ready/user-friendly yet!) 
+
+- `GUI.Event()` ➡️ `GUI.NeedNewRendition()`
+
+  Because events are handled once,
+  
+  but multiple renditions are usually done!
+
+- Faster rendering using more types
+  
+  TODO: `initial_capacity` and `clear()`
+
+
+&nbsp;
+
+#### 🥾 Quick start
+```bash
+git clone https://github.com/rd4com/mojo-ui-html
+cd mojo-ui-html
+magic shell
+mojo run demo_principal.mojo
+```
+
+&nbsp;
+
+#### ❤️‍🔥 Mojo is a programming language
+
+This gui is built using mojo!
+
+User-friendly, fast, active community, friends, python family, love it!
+
+> **MAX and Mojo usage and distribution are licensed under the [MAX & Mojo Community License](https://www.modular.com/legal/max-mojo-license)**
+
+
+&nbsp;
+
+#### 🎮 Good start to `learn mojo` by `creating` a small `videogame` !
+This new feature: `GUI.keyboard_handler` is cool,
+
+it can work even when there are unfocussed UI widgets in a window👍
+```mojo
+from ui import *
+
+def main():
+    var GUI = Server()
+    GUI.request_interval_second = 0 #no Time.sleep between events
+    GUI.keyboard_handler = True
+    var pos = SIMD[DType.int32, 2](0)   #[x, y] 
+    while GUI.NeedNewRendition(): 
+        k = GUI.KeyDown()
+        if not k.isa[NoneType]():
+            # if k.isa[Int]():
+            #     print(k[Int])# example: ord('a'), ..
+            if k.isa[String]():
+                var k_tmp = k[String] 
+                if k_tmp == "ArrowUp": pos[1] -= 10
+                elif k_tmp == "ArrowDown": pos[1] += 10
+                elif k_tmp == "ArrowLeft": pos[0] -= 10
+                elif k_tmp == "ArrowRight": pos[0] += 10
+        GUI.RawHtml(String(
+            "<div style='position:absolute;",
+            "left:",pos[0],";",
+            "top:", pos[1],";"
+            "'>🚙</div>"
+        ))
+```
+
+⬅️ ⬆️ ⬇️ ➡️ to move the 🚙 on the `html` page!
+
+&nbsp;
+
+#### 📋 Example todo app
+```mojo
+from ui import *
+def main():
+    GUI = Server()
+    var txt:String = "test"
+    var todos= List[String]()  
+    var time:String = "15:00"
+    var date:String = "2024-01-01"
+    var pos = Position(256,128,2.0)
+    while GUI.NeedNewRendition():
+        with GUI.Window("Todo app",pos):
+            GUI.Text(str(len(todos)))
+            with GUI.ScrollableArea(128):
+                for i in range(len(todos)): 
+                    GUI.Text(todos[i])
+            GUI.NewLine()
+
+            GUI.TimeSelector(time)
+            GUI.DateSelector(date)
+            GUI.TextInput("textinput",txt)
+            
+            if GUI.Button("Add"): 
+                todos.append(GUI.Circle.Blue+" "+time+" " + date + " " + txt)
+            if GUI.Button("pop"):
+                if len(todos):todos.pop()
+```
+
+&nbsp;
+
+&nbsp;
+
+
+#### 🔺 Next todo:
+Create a tutorial that adds different widgets to the page (one by one), 
+
+progressively learning how to add to the ui.
+
+&nbsp;
 
 &nbsp;
 
@@ -15,21 +141,13 @@ It serves as the `dev` branch and is developped using mojo nightly.
 
 - ### Not ready for use yet, feedbacks, ideas and contributions welcome!
 
-
-
-
-
-
-
-
-
-
 &nbsp;
 
 ## ⚠️ 
 - Server on ```127.0.0.1:8000```
   - not meant to be a web-framework, but a simple ui
-
+  - Exit loop if request from other than "127.0.0.1" by default 
+    - As an additional safeguard (not been tested)
 - Dom generated from the content of values
   
   - ```example: "<input value='" + value + "'/>"```
@@ -40,14 +158,12 @@ It serves as the `dev` branch and is developped using mojo nightly.
 
 
 - Blocking loop by default
-- Exit loop if request from other than "127.0.0.1" by default 
-  - As an additional safeguard (not been tested)
 
 - ❤️‍🔥 [How 'widgets' attempts(⚠️) to maintain the rendering up-to-date ?](#how-widgets-attempts%EF%B8%8F-to-maintain-the-rendering-up-to-date-)
   - Will spin the loop multiple times and send only last rendition as response
+  - events are handled once, but multiple renditions are done
   - ```should_re_render()``` for user initiated triggering!
-    - once response is sent, need to wait for next request (blocking socket)
-
+  - once response is sent, need to wait for next request (blocking socket)
 
 
 - Probably more
@@ -70,17 +186,18 @@ It serves as the `dev` branch and is developped using mojo nightly.
 ```python
 from ui import *
 from math import iota, sqrt
+from sys import simdwidthof
 def main():
-    GUI = Server[base_theme="theme_neutral.css"]()
+    GUI = Server()
     var counter = 0
-    while GUI.Event():
-        var tmp = iota[DType.float16,SIMD[DType.float16].size](counter)
-        GUI.Text(tmp)
-        GUI.Text(sqrt(tmp))
-        
-        GUI.Slider("Counter",counter)
+    while GUI.NeedNewRendition(): 
+        #Not necessary to create a window if not needed
         if GUI.Button("increment"): counter+=1
         if GUI.Button("decrement"): counter-=1
+        GUI.Slider("Counter",counter)
+        var tmp = iota[DType.float16, simdwidthof[DType.float16]()](counter)
+        GUI.Text(repr(tmp))
+        GUI.Text(repr(sqrt(tmp)))
 ```
 
 &nbsp;
@@ -89,86 +206,82 @@ def main():
 from ui import *
 
 def main():
-  #⚠️ see readme.md, there are challenges and limitations!
-  val = 50
-  txt = String("Naïve UTF8 🥳")
-  boolval = True
-  multichoicevalue = String("First")
-  colorvalue = String("#1C71D8")
-  datevalue = String("2024-01-01")
+    #⚠️ see readme.md in order to be aware about challenges and limitations!
+    val = 50
+    txt = String("Naïve UTF8 🥳")
+    boolval = True
+    multichoicevalue = String("First")
+    colorvalue = String("#1C71D8")
+    datevalue = String("2024-01-01")
 
-  GUI = Server()        
-  
-  POS = Position(1,1)
-  POS2 = Position(1,350)
-  POS3 = Position(32,512)
-  POS4 = Position(512,16)
+    GUI = Server()
 
-  combovalues = DynamicVector[String]()
-  for i in range(5): combovalues.push_back("Value "+str(i))
-  selection = 1
+    POS = Position(1,1)
+    POS2 = Position(1,350)
+    POS3 = Position(32,512)
+    POS4 = Position(512,16)
 
-  while GUI.Event():
-      with GUI.Window("Debug window",POS):
-          GUI.Text("Hello world 🔥")
-          if GUI.Button("Button"): val = 50 
-          if GUI.Slider("Slider",val): 
-              print("Changed")
-          GUI.TextInput("Input",txt) #⚠️ ```maxlength='32'``` attribute by default.
-          GUI.ComboBox("ComboBox",combovalues,selection)
-          GUI.Toggle(boolval,"Checkbox")
+    combovalues = List[String]()
+    for i in range(5): combovalues.append("Value "+str(i))
+    selection = 1
 
-      with GUI.Window("Fun features",POS3):
-          GUI.Text(GUI.Circle.Green + " Green circle")
-          GUI.Text(GUI.Square.Blue + " Blue square")
-          GUI.Text(GUI.Accessibility.Info + " Some icons")
-          GUI.Text(GUI.Bold("Bold() ")+GUI.Highlight("Highlight()"))
-          GUI.Text(GUI.Small("small") + " text")
+    while GUI.NeedNewRendition():
+        with GUI.Window("Debug window",POS):
+            GUI.Text("Hello world 🔥")
+            if GUI.Button("Button"): val = 50 
+            if GUI.Slider("Slider",val): 
+                print("Changed")
+            GUI.TextInput("Input",txt) #⚠️ ```maxlength='32'``` attribute by default.
+            GUI.ComboBox("ComboBox",combovalues,selection)
+            GUI.Toggle(boolval,"Checkbox")
 
-          with GUI.Collapsible("Collapsible()"):
-              GUI.Text("Content")
+        with GUI.Window("Fun features",POS3):
+            GUI.Text(GUI.Circle.Green + " Green circle")
+            GUI.Text(GUI.Square.Blue + " Blue square")
+            GUI.Text(GUI.Accessibility.Info + " Some icons")
+            GUI.Text(GUI.Bold("Bold() ")+GUI.Highlight("Highlight()"))
+            GUI.Text(GUI.Small("small") + " text")
 
-      with GUI.Window("More widgets",POS4):
-          GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
-          GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
+            with GUI.Collapsible("Collapsible()"):
+                GUI.Text("Content")
 
-          with GUI.Table():
-              for r in range(3):
-                  with GUI.Row():
-                      for c in range(3): 
-                          with GUI.Cell():
-                              GUI.Text(str(r) + "," + str(c))
-  
-          with GUI.ScrollableArea(123):
-              GUI.Text(GUI.Bold("ScrollableArea()"))
-              GUI.ColorSelector(colorvalue)
-              GUI.NewLine()
-              GUI.DateSelector(datevalue) #⚠️ format is unclear (see readme.md)
-              for i in range(10): GUI.Text(str(i))
-      
-      with GUI.Window("Values",POS2,CSSTitle="background-color:"+colorvalue): 
-          GUI.Text(txt)
-          
-          if selection < len(combovalues):           #manual bound check for now
-              GUI.Text(combovalues[selection])
-          
-          with GUI.Tag("div","background-color:"+colorvalue):
-              GUI.Text(colorvalue)
-          
-          GUI.Text(datevalue)
-          
-          with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
-              GUI.Text("❤️‍🔥")
-          
-          GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
+        with GUI.Window("More widgets",POS4):
+            GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
+            GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
+
+            with GUI.Table():
+                for r in range(3):
+                    with GUI.Row():
+                        for c in range(3): 
+                            with GUI.Cell():
+                                GUI.Text(str(r) + "," + str(c))
+    
+            with GUI.ScrollableArea(123):
+                GUI.Text(GUI.Bold("ScrollableArea()"))
+                GUI.ColorSelector(colorvalue)
+                GUI.NewLine()
+                GUI.DateSelector(datevalue) #⚠️ format is unclear (see readme.md)
+                for i in range(10): GUI.Text(str(i))
+        
+
+        with GUI.Window("Values",POS2,CSSTitle="background-color:"+colorvalue): 
+            GUI.Text(txt)
+            if selection < len(combovalues):      #manual bound check for now
+                GUI.Text(combovalues[selection])
+            with GUI.Tag("div","background-color:"+colorvalue):
+                GUI.Text(colorvalue)
+            GUI.Text(datevalue)
+            with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
+                GUI.Text("❤️‍🔥")
+            GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
 ```
 
 &nbsp;
 
 ## Features
-- 🎨 Themed with CSS
+- 🎨 Themed with `CSS`
   - Default theme colors are kept familiar (🎁)🔥
-  - themes.css where widgets have corresponding entries (class)
+  - `theme.css` where widgets have corresponding entries (class)
   - Customize individual widgets instances styles with keyword arguments
     - dom element style attribute
   - [The current styling system](#-the-current-styling-system)
@@ -182,7 +295,6 @@ def main():
       background = "linear-gradient(#ffff00, #f90)"
     )
     ```
-    - *see [demo_keyboard_and_css.mojo](./demo_keyboard_and_css.mojo)*
 
 - 🆕 Keyboard event handler
   - Send events only if the user is not already interacting with a dom element.
@@ -321,7 +433,7 @@ def main():
 
 
 - Add html manually:
-   - GUI.response += "\<img src=".. some base64
+   - `GUI.RawHtml("<h1>Page</h1>")`
 
 - Expressivity:
   - Bold("Hello") -> **Hello**
@@ -393,6 +505,8 @@ The idea is also to try to reduce the probabilities of interacting with out-of-d
 
 &nbsp;
 
+(TODO: parametrize this)
+
 On the top right corner, 
 
 the number of iterations done (more or less) to generate the page is shown for debugging.
@@ -401,7 +515,7 @@ Note that two successive frames might not be enough, in somes cases,
 
  but it is a start and feedbacks are welcomed!
 
-Example illustrating the new features: [Simple todo list](demo_simple_todo_list.mojo)
+Example illustrating the new features: [Simple todo list](demo_todos.mojo)
 
 &nbsp;
 
@@ -409,11 +523,11 @@ Example illustrating the new features: [Simple todo list](demo_simple_todo_list.
 ```python
 from ui import *
 def main():
-    GUI = Server[base_theme="theme_neutral.css"]()
+    GUI = Server()
     var color:String = "#3584E4"
     var favorite_color:String = "#33D17A"
     var pos = Position(128,128,2.0)
-    while GUI.Event(): 
+    while GUI.NeedNewRendition(): 
         with GUI.Window("Test",pos,"background-color:"+color):
             if color == favorite_color:
                 color = "#FFFFAA"
@@ -513,14 +627,10 @@ with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
     GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
 ```
 
-### Different base themes (CSS)
-By default, the type will use "theme.css" as a base style, it is possible to change it in the parameters:
+### Different base themes (`.CSS`)
+By default, the type will use "theme.css" as a base style.
 
-```python
-GUI = Server[base_theme="theme_neutral.css"]()
-```
-
-Additionally, the theme can specified on the command-line:
+The theme can specified on the command-line:
 
 *(Thanks to [Carl Caulkett](https://github.com/carlca/) for the suggestion 🔥)*
 
@@ -544,9 +654,7 @@ mojo run -D mojo_ui_html_theme="theme_neutral.css" demo_principal.mojo
 &nbsp;
 
 ## Current implementation challenges:
-- Can't do nested type to create a tree of dom elements without pointers, better to wait a little for that.
-  - ( ```struct Element(CollectionElement): var elements: DynamicVector[Self]``` )
-  - the dom could be transfered as json and re-generated safer-ly in a loop.
+- The dom could be sent as json and rendered safer-ly in a JS loop.
 
 - ```onchange``` is used instead of ```oninput``` (to not keep track of dom element focus, temporarely)
   - solved by generating serialized dom as nested nodes, and "morphing" it

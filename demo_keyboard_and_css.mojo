@@ -1,53 +1,24 @@
 from ui import *
 
 def main():
-    GUI = Server()
-    GUI.request_interval_second=0.0001 #control the loop throttle (careful)
-    GUI.keyboard_handler = True #False by default
-
-    MyWindow = Position(1,1)
-    var buffer = String("")
-    var lastK = String("None")
-    var ElementPos = (0,0)
-
-    while GUI.Event():
+    var GUI = Server()
+    GUI.request_interval_second = 0 #no Time.sleep between events
+    GUI.keyboard_handler = True
+    var pos = SIMD[DType.int32, 2](0)   #[x, y]
+    while GUI.NeedNewRendition(): 
         k = GUI.KeyDown()
-        if k.isa[Int]():
-            var K = k.take[Int]()
-            if K!=0 and K >=32 and K<=127: buffer+=(chr(K))   
-        elif k.isa[String]():
-            var K = k.take[String]()
-            lastK = K
-            if K == "ArrowLeft": 
-                ElementPos = (ElementPos.get[0]()-16,ElementPos.get[1]())
-            if K == "ArrowUp": ElementPos = (ElementPos.get[0](),ElementPos.get[1]()-16)
-            if K == "ArrowDown": ElementPos = (ElementPos.get[0](),ElementPos.get[1]()+16)
-            if K == "ArrowRight": ElementPos = (ElementPos.get[0]()+16,ElementPos.get[1]())
-        
-        with GUI.Tag(
-            "Div",
-            CSS(
-                position="absolute",
-                left=ElementPos.get[0](),
-                top=ElementPos.get[1](),
-                `font-size`=64
-            )
-        ): GUI.RawHtml("🗿")
-
-        with GUI.Window("The Title",MyWindow):
-            if MyWindow.opened:
-                var MyCss=CSS(
-                    `text-shadow` = "1px 1px 1px yellow",
-                    `font-size` = "32px",
-                    background = "linear-gradient(#ffff00, #f90)"
-                )
-                
-                with GUI.Tag("span",MyCss):
-                    GUI.RawHtml("🔥🐍🐉")
-                with GUI.Tag("span",CSS(color="sienna")): 
-                    GUI.RawHtml(" **kwargs CSS support")
-                GUI.Text("Last key:"+lastK)
-                GUI.TextInput("Buffer",buffer)
-
-
-         
+        if not k.isa[NoneType]():
+            # if k.isa[Int]():
+            #     print(k[Int])# example: ord('a'), ..
+            if k.isa[String]():
+                var k_tmp = k[String] 
+                if k_tmp == "ArrowUp": pos[1] -= 10
+                elif k_tmp == "ArrowDown": pos[1] += 10
+                elif k_tmp == "ArrowLeft": pos[0] -= 10
+                elif k_tmp == "ArrowRight": pos[0] += 10
+        GUI.RawHtml(String(
+            "<div style='position:absolute;",
+            "left:",pos[0],";",
+            "top:", pos[1],";"
+            "'>🚙</div>"
+        ))
