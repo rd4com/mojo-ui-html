@@ -29,6 +29,12 @@
   
   TODO: `initial_capacity` and `clear()`
 
+- Add `with` ➡️`GUI.HorizontalGrow`, ⬇️`GUI.VerticalGrow` 
+  
+  Theses are flex `div`, the content added grows it. 
+  
+  see [demo_horizontal_vertical](./demo_horizontal_vertical_containers.mojo)
+
 
 &nbsp;
 
@@ -434,6 +440,32 @@ def main():
 
 - Add html manually:
    - `GUI.RawHtml("<h1>Page</h1>")`
+
+- ⬇️VerticalGrow and ➡️HorizontalGrow
+
+  Flex divs implemented `with` context managers:
+  ```mojo
+  from ui import *
+  def main():
+      GUI = Server()
+      while GUI.NeedNewRendition(): 
+          with GUI.HorizontalGrow():
+              with GUI.VerticalGrow():
+                  GUI.Text("First column")
+                  for i in range(3):
+                      GUI.Button(GUI.Digitize(i))
+              with GUI.VerticalGrow():
+                  GUI.Text("Second column")
+                  for i in range(3):
+                      GUI.Button(repr(i))
+  ```
+  Result:
+  ```
+  First column Second column
+  0️⃣           0
+  1️⃣           1
+  2️⃣           2
+  ```
 
 - Expressivity:
   - Bold("Hello") -> **Hello**

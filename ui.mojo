@@ -542,6 +542,14 @@ struct Server:
             self.SetNoneRequest()
 
         return ret
+    
+
+    #TODO: add css, align, ..
+    def HorizontalGrow(mut self)->WithTag[__origin_of(self)]:
+        return WithTag(self, "div","display: flex;flex-direction: row;", "")
+    def VerticalGrow(mut self)->WithTag[__origin_of(self)]:
+        return WithTag(self, "div","display: flex;flex-direction: column;", "")
+
 @value
 struct ScrollableArea[L:MutableOrigin]:
     var server: Pointer[Server, L]
