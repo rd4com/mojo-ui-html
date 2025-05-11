@@ -46,7 +46,7 @@ struct Position:
     var y:Int
     var scale:Float64
     var opened:Bool
-    fn __init__(inout self,x:Int,y:Int,scale:Float64=1.0):
+    fn __init__(out self,x:Int,y:Int,scale:Float64=1.0):
         self.x =x
         self.y =y
         self.scale = scale
@@ -57,7 +57,7 @@ struct Server:
     alias exit_if_request_not_from_localhost = param_env.env_get_bool[
         "exit_if_request_not_from_localhost", True
     ]()
-    alias base_theme:StringLiteral = param_env.env_get_string[
+    alias base_theme = param_env.env_get_string[
         "mojo_ui_html_theme","theme.css"
     ]()
 
@@ -86,24 +86,24 @@ struct Server:
 
 
 
-    fn __init__(inout self):
+    fn __init__(out self):
         try:
-            with open(self.base_theme,"r") as f:
+            with open(Self.base_theme,"r") as f:
                 self.base_styles = f.read()
         except e:
-            print("Error importing theme.css: " + str(e))
+            print("Error importing theme.css: " + String(e))
             self.base_styles = ""
         try:
             with open("base.js","r") as f:
                 self.base_js = f.read()
         except e:
-            print("Error importing base.js: " + str(e))
+            print("Error importing base.js: " + String(e))
             self.base_js = ""
         try:
             with open("keyboard_handler.js","r") as f:
                 self.keyboard_handler_js = f.read()
         except e:
-            print("Error importing keyboard_handler.js: " + str(e))
+            print("Error importing keyboard_handler.js: " + String(e))
             self.keyboard_handler_js = ""
 
         self.server  = PythonObject(None)
@@ -123,46 +123,45 @@ struct Server:
         except e:
             print(e)
 
-    def start(inout self, host:StringLiteral = "127.0.0.1", port:Int = 8000):
+    def start(mut self, host:String = "127.0.0.1", port:Int = 8000):
         var socket = Python.import_module("socket")
         var tmp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server = tmp
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        self.server.bind((host, port))
+        self.server.bind(Python.tuple(host, port))
         #self.server.setblocking(0) #Blocking by default
         self.server.listen(1)
-        print("http://"+str(host)+":"+str(port))
+        print("http://"+String(host)+":"+String(port))
 
     fn __del__(owned self):
         try:
             self.server.close()
         except e: print(e)
 
-    fn _response_init(inout self):
+    fn _response_init(mut self):
         # self.response = String(capacity=32768*64)
-        self.response._buffer.size = 0
+        self.response = String()
         self.response += 'HTTP/1.0 200 OK\n\n'
         if not self.keyboard_handler:
             self.keyboard_handler_js = ""
         self.response += "<html  ondrop='drop(event)' ondragover='preventDefaults(event)'><head><link rel='icon' href='data:;base64,='><script>"+self.base_js+self.keyboard_handler_js+"</script><style>"+self.base_styles+"</style><meta charset='UTF-8'></head><body>"
 
-    fn should_re_render(inout self): self.re_render_current = True
+    fn should_re_render(mut self): self.re_render_current = True
 
-    fn Span(inout self, arg:String):
+    fn Span(mut self, arg:String):
         self.RawHtml("<span>"+arg+"</span")
 
-    fn RawHtml(inout self,arg:String):
+    fn RawHtml(mut self,arg:String):
         self.response += arg
 
-    fn AudioBase64Wav(inout self, b64wav:String):
+    fn AudioBase64Wav(mut self, b64wav:String):
         self.RawHtml("<audio loop style='width:100%;' controls='controls' autobuffer='autobuffer' autoplay='autoplay'>")
         self.RawHtml("<source src='data:audio/wav;base64,"+b64wav+"' />")
         self.RawHtml("</audio>")
 
-    fn NeedNewRendition(inout self) -> Bool:
-        var ref_c = Pointer.address_of(self.client)
-        var ref_s = Pointer.address_of(self.server)
+    fn NeedNewRendition(mut self) -> Bool:
+        var ref_c = Pointer(to=self.client)
+        var ref_s = Pointer(to=self.server)
         if self.send_response == True:
             self.total_renditions+=1
             var current_rendition:String=" "
@@ -210,10 +209,10 @@ struct Server:
             @parameter
             if self.exit_if_request_not_from_localhost:
                 if ref_c[][1][0] != '127.0.0.1':
-                    print("Exit, request from: "+str(ref_c[][1][0]))
+                    print("Exit, request from: "+String(ref_c[][1][0]))
                     return False
 
-            var tmp_ = str(ref_c[][0].recv(1024).decode())
+            var tmp_ = String(ref_c[][0].recv(1024).decode())
             self.request = tmp_.split('\n')[0].split(" ")
             self.send_response=True
         except e:
@@ -223,10 +222,10 @@ struct Server:
 
         return True #todo: should return self.Running: bool to exit the loop
 
-    fn SetNoneRequest(inout self):
+    fn SetNoneRequest(mut self):
         self.request = List[String]()
 
-    fn KeyDown(inout self)-> Variant[Int,String,NoneType]:
+    fn KeyDown(mut self)-> Variant[Int,String,NoneType]:
         if not self.keyboard_handler: return NoneType()
         # print(self.request.__repr__())
         try:
@@ -236,12 +235,12 @@ struct Server:
             :
                 var tmp = self.request[1].split("/")
                 if len(tmp)>=3:
-                    if not str(tmp[3]).startswith("keydown-"):
-                        var res = atol(str(tmp[3]))
+                    if not String(tmp[3]).startswith("keydown-"):
+                        var res = atol(String(tmp[3]))
                         self.SetNoneRequest()
                         return res
                     else:
-                        var res = str(tmp[3]).split("keydown-")[1]
+                        var res = String(tmp[3]).split("keydown-")[1]
                         self.SetNoneRequest()
                         return res
         except e:
@@ -250,11 +249,11 @@ struct Server:
         return NoneType() #Int(0)
 
 
-    def Button(inout self,txt:String,CSS:String="") ->Bool:
+    def Button(mut self,txt:String,CSS:String="") ->Bool:
         var id:String = ""
         var ptr = txt.unsafe_ptr()
         for c in range(len(txt)):
-            id+=str(ptr[c])
+            id+=String(ptr[c])
             id+="-"
         _=txt
         self.response += String("<div data-click='true' class='Button_' style='", CSS, "' id='", id, "'>", txt, "</div>")
@@ -264,10 +263,10 @@ struct Server:
             return True
         return False
 
-    def Toggle[L:MutableOrigin](inout self,ref[L]val:Bool,label:String)->Bool:
+    def Toggle[L:MutableOrigin](mut self,ref[L]val:Bool,label:String)->Bool:
         var res:Bool = False
         var val_repr:String = "ToggleOff_"
-        var id:String = str(self.ID(val))
+        var id:String = String(self.ID(val))
         if self.request and self.request[1] == "/click_"+id:
             val = not val
             self.should_re_render()
@@ -278,13 +277,13 @@ struct Server:
         self.response += String("<div data-click='true' class='", val_repr, "' id='", id, "'", ">", label, "</div>")
         return res
 
-    fn Text(inout self:Self, txt:String):
+    fn Text(mut self:Self, txt:String):
         self.response += "<div class='Text_'>"+txt+"</div>"
 
     def Window(
-        inout self,
+        mut self,
         name: String,
-        inout pos:Position,
+        mut pos:Position,
         CSSTitle:String=""
     )->Window[__origin_of(self), __origin_of(pos)]:
         return Window[__origin_of(self), __origin_of(pos)](
@@ -294,32 +293,32 @@ struct Server:
             CSSTitle
         )
 
-    def Slider[L:MutableOrigin](inout self,label:String,ref[L]val:Int, min:Int = 0, max:Int = 100,CSSLabel:String="",CSSBox:String="")->Bool:
+    def Slider[L:MutableOrigin](mut self,label:String,ref[L]val:Int, min:Int = 0, max:Int = 100,CSSLabel:String="",CSSBox:String="")->Bool:
         #Todo: if new_value > max: new_value = max, check if min<max
-        var id:String = str(self.ID(val))
+        var id:String = String(self.ID(val))
         var retval = False
         if self.request and self.request[1].startswith("/change_"+id):
             val = atol(self.request[1].split("/")[2]) #split by "/change_"+id ?
             self.SetNoneRequest()
             self.should_re_render()
             retval=True
-        self.response += String("<div class='SliderBox_' style='", CSSBox, "'><div><span class='SliderLabel_' style='", CSSLabel, "'>", label, "</span> ",str(val),"</div>")
-        self.response += "<input data-change='true' type='range' min='"+str(min)+"' max='"+str(max)+"' value='"+str(val)+"' style='max-width: fit-content;' id='"+str(id)+"'>"
+        self.response += String("<div class='SliderBox_' style='", CSSBox, "'><div><span class='SliderLabel_' style='", CSSLabel, "'>", label, "</span> ",String(val),"</div>")
+        self.response += "<input data-change='true' type='range' min='"+String(min)+"' max='"+String(max)+"' value='"+String(val)+"' style='max-width: fit-content;' id='"+String(id)+"'>"
         self.response += "</div>"
         return retval
 
-    fn ID[T:AnyType](inout self, ref[_]arg:T)->Int:
-        return UnsafePointer.address_of(arg).__int__()
+    fn ID[T:AnyType](mut self, ref[_]arg:T)->Int:
+        return UnsafePointer(to=arg).__int__()
 
     fn TextInput[maxlength:Int=32](
-        inout self,
+        mut self,
         label:String,
-        inout val:String,
+        mut val:String,
         CSSBox:String="",
     )->Bool:
         var ret_val = False
         try:
-            var id:String = str(self.ID(val))
+            var id:String = String(self.ID(val))
             var tmp2 = "/change_"+id+"/"
             if self.request and self.request[1] == tmp2:
                 val = "" #empty
@@ -329,11 +328,10 @@ struct Server:
             else:
                 if self.request and self.request[1].startswith(tmp2):
                     var tmp3 = self.request[1].split(tmp2)[1].split("-")
-                    var tmp4 = List[UInt8, True](capacity=len(tmp3)+1)
+                    # var tmp4 = List[UInt8, True](capacity=len(tmp3))
+                    val = String()
                     for i in range(len(tmp3)):
-                        tmp4.append(UInt8(atol(tmp3[i])))
-                    tmp4.append(0)
-                    val = String(buffer=tmp4)
+                        val += chr(Int(tmp3[i])) #Todo: test this new change
                     self.should_re_render()
                     self.SetNoneRequest()
                     ret_val = True
@@ -341,14 +339,14 @@ struct Server:
             self.response += "<div class='TextInputBox_' style='"+CSSBox+"'>"
             if label!="":
                 self.response += "<span>"+label+"</span>"
-            self.response += "<input maxlength='"+str(maxlength)+"' class='TextInputElement_' data-textinput='true' value='"+val+"' type='text' id='"+id+"'>"
+            self.response += "<input maxlength='"+String(maxlength)+"' class='TextInputElement_' data-textinput='true' value='"+val+"' type='text' id='"+id+"'>"
             self.response += "</div>"
-        except e: print("Error TextInput widget: "+ str(e))
+        except e: print("Error TextInput widget: "+ String(e))
         return ret_val
 
-    def ComboBox[L:MutableOrigin](inout self,label:String,values:List[String],ref[L]selection:Int)->Bool:
+    def ComboBox[L:MutableOrigin](mut self,label:String,values:List[String],ref[L]selection:Int)->Bool:
         var ret_val = False
-        var id:String = str(self.ID(selection))
+        var id:String = String(self.ID(selection))
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):
             selection = atol(self.request[1].split(tmp2)[1])
@@ -368,9 +366,9 @@ struct Server:
         self.response += "</div>"
         return ret_val
 
-    def ComboBox[L:MutableOrigin](inout self,label:String,ref[L]selection:Int,*selections:StringLiteral)->Bool:
+    def ComboBox[L:MutableOrigin](mut self,label:String,ref[L]selection:Int,*selections:String)->Bool:
         var ret_val = False
-        var id:String = str(self.ID(selection))
+        var id:String = String(self.ID(selection))
         var tmp2 = "/combobox_"+id+"/"
         if self.request and self.request[1].startswith(tmp2):
             selection = atol(self.request[1].split(tmp2)[1])
@@ -390,8 +388,8 @@ struct Server:
         self.response += "</div>"
         return ret_val
 
-    def TextChoice[L:MutableOrigin](inout self, label:String,ref[L]selected: String, *selections:StringLiteral):
-        var id:String = str(self.ID(selected))
+    def TextChoice[L:MutableOrigin](mut self, label:String,ref[L]selected: String, *selections:String):
+        var id:String = String(self.ID(selected))
         var tmp2 = "/text_choice/"+id+"/"
         if self.request and self.request[1].startswith(tmp2):
             try:
@@ -402,37 +400,37 @@ struct Server:
                 self.should_re_render()
                 self.SetNoneRequest()
 
-            except e: print("Error TextChoice widget: "+str(e))
+            except e: print("Error TextChoice widget: "+String(e))
 
         self.response+="""
             <fieldset class='TextChoiceFieldset_'>
             <legend class='TextChoiceLegend_'>""" + label + "</legend>"
         for i in range(len(selections)):
-            var current = str(selections[i])
-            var url = "/text_choice/"+id+"/"+str(i)
+            var current = String(selections[i])
+            var url = "/text_choice/"+id+"/"+String(i)
             if current == selected:
                 self.response+= "<span id='0' data-textchoice='"+url+"'>▪️<b>" + (current)+'</b></span><br>'
             else:
                 self.response+= "<span id='0' data-textchoice='"+url+"'>▪️" + (current)+'</span><br>'
         self.response += "</fieldset>"
 
-    def Bold(inout self, t:String)->String: return "<b>"+t+"</b>"
-    def Highlight(inout self, t:String)->String: return "<mark>"+t+"</mark>"
-    def Small(inout self, t:String)->String: return "<small>"+t+"</small>"
-    def _Ticker(inout self,t:String)->String:
+    def Bold(mut self, t:String)->String: return "<b>"+t+"</b>"
+    def Highlight(mut self, t:String)->String: return "<mark>"+t+"</mark>"
+    def Small(mut self, t:String)->String: return "<small>"+t+"</small>"
+    def _Ticker(mut self,t:String)->String:
         return "<marquee>"+t+"</marquee>"
-    def Ticker(inout self,t:String,width:Int=200):
-        self.response+="<div class='Ticker_' style='width:"+str(width)+"px'><marquee>"+t+"</marquee></div>"
+    def Ticker(mut self,t:String,width:Int=200):
+        self.response+="<div class='Ticker_' style='width:"+String(width)+"px'><marquee>"+t+"</marquee></div>"
 
-    def Digitize(inout self, number: Int)->String :
-        var digits = List("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
-        tmp = str(number)
+    def Digitize(mut self, number: Int)->String :
+        var digits = List[String]("0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣")
+        tmp = String(number)
         var res:String = ""
         for i in range(len(tmp)):
             res+=digits[(ord(tmp[i])-48)]
         return(res)
 
-    def Collapsible(inout self,title:String,CSS:String="")->Collapsible[__origin_of(self)]:
+    def Collapsible(mut self,title:String,CSS:String="")->Collapsible[__origin_of(self)]:
         return Collapsible(
             self,
             title,
@@ -466,24 +464,24 @@ struct Server:
     def ScrollableArea[L:MutableOrigin](ref[L]self,height:Int=128)->ScrollableArea[L]:
         return ScrollableArea(self,height)
 
-    def ColorSelector(inout self, inout arg:String)->Bool:
+    def ColorSelector(mut self, mut arg:String)->Bool:
         var ret_val = False
-        var id:String = str(self.ID(arg))
+        var id:String = String(self.ID(arg))
         var tmp3 = "/colorselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3):
             try:
-                result = "#"+str(self.request[1].split(tmp3)[1])
+                result = "#"+String(self.request[1].split(tmp3)[1])
                 arg=result
                 self.should_re_render()
                 self.SetNoneRequest()
                 ret_val = True
-            except e: print("Error ColorSelector widget: "+str(e))
+            except e: print("Error ColorSelector widget: "+String(e))
         self.response += "<input class='ColorSelector_' data-colorselector='true' type='color' id='"+id+"' value='"+arg+"'>"
         return ret_val
 
-    def TimeSelector(inout self, inout arg:String)->Bool:
+    def TimeSelector(mut self, mut arg:String)->Bool:
         var ret_val = False
-        var id = str(self.ID(arg))
+        var id = String(self.ID(arg))
         var tmp3 = "/timeselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3):
             try:
@@ -492,27 +490,27 @@ struct Server:
                 self.should_re_render()
                 self.SetNoneRequest()
                 ret_val = True
-            except e: print("Error TimeSelector widget: "+str(e))
+            except e: print("Error TimeSelector widget: "+String(e))
 
         self.response += "<input class='DateSelector_' data-callbackurl='"+tmp3+"' type='time' id='"+id+"' value='"+arg+"' onblur='send_element_value(event)'>"
         return ret_val
 
     #⚠️ not sure at all about the date format (see readme.md)
-    def DateSelector(inout self, inout arg:String)->Bool:
+    def DateSelector(mut self, mut arg:String)->Bool:
         var ret_val = False
-        var id = str(self.ID(arg))
+        var id = String(self.ID(arg))
         var tmp3 = "/dateselector_"+id+"/"
         if self.request and self.request[1].startswith(tmp3):
             try:
-                result = str(self.request[1].split(tmp3)[1])
+                result = String(self.request[1].split(tmp3)[1])
                 arg=result
                 self.should_re_render()
                 self.SetNoneRequest()
                 ret_val = True
-            except e: print("Error DateSelector widget: "+str(e))
+            except e: print("Error DateSelector widget: "+String(e))
         self.response += "<input class='DateSelector_' data-dateselector='true' type='date' id='"+id+"' value='"+arg+"'>"
         return ret_val
-    def NewLine(inout self): self.response+="</br>"
+    def NewLine(mut self): self.response+="</br>"
 
     fn Tag[L:MutableOrigin](
         ref[L]self,
@@ -528,15 +526,15 @@ struct Server:
             _additional_attributes
         )
 
-    fn AudioBase64WavSpecial(inout self, id: Int, volume:Int, b64wav:String):
-        self.RawHtml("<audio loop controls='controls' autobuffer='autobuffer' id='AudioPlayerSpecial"+str(id)+"' data-volume='"+str(volume)+"'>")
+    fn AudioBase64WavSpecial(mut self, id: Int, volume:Int, b64wav:String):
+        self.RawHtml("<audio loop controls='controls' autobuffer='autobuffer' id='AudioPlayerSpecial"+String(id)+"' data-volume='"+String(volume)+"'>")
         self.RawHtml("<source src='data:audio/wav;base64,"+b64wav+"' />")
         self.RawHtml("</audio>")
 
-    def CustomEvent(inout self,unique_name:String)->Optional[String]:
+    def CustomEvent(mut self,unique_name:String)->Optional[String]:
         var ret = Optional[String](None)
         if self.request and self.request[1].startswith("/custom_event_"+unique_name):
-            ret = str(self.request[1].split("/")[2])
+            ret = String(self.request[1].split("/")[2])
             self.SetNoneRequest()
             self.should_re_render()
             self.SetNoneRequest()
@@ -554,11 +552,11 @@ struct Server:
 struct ScrollableArea[L:MutableOrigin]:
     var server: Pointer[Server, L]
     var height: Int
-    fn __init__(inout self, ref[L]ui:Server, height: Int):
-        self.server = Pointer.address_of(ui)
+    fn __init__(out self, ref[L]ui:Server, height: Int):
+        self.server = Pointer(to=ui)
         self.height = height
     fn __enter__(self):
-        self.server[].response += "<div class='ScrollableArea_' style='height:"+str(self.height)+"px;'>"
+        self.server[].response += "<div class='ScrollableArea_' style='height:"+String(self.height)+"px;'>"
 
     fn __exit__( self): _=self.close()
     fn __exit__( self, err:Error)->Bool: return self.close()
@@ -572,10 +570,10 @@ struct Collapsible[L:MutableOrigin]:
     var title: String
     var server: Pointer[Server, L]
     var CSS: String
-    fn __init__(inout self, ref[L]ui:Server, title:String, css:String):
+    fn __init__(out self, ref[L]ui:Server, title:String, css:String):
         self.title = title
         self.CSS = css
-        self.server = Pointer.address_of(ui)
+        self.server = Pointer(to=ui)
     fn __enter__(self):
         self.server[].response += "<details><summary class='Collapsible_' style='"+self.CSS+"'>"+self.title+"</summary>"
 
@@ -593,8 +591,8 @@ struct WithTag[L:MutableOrigin]:
     var tag:String
     var style:String
     var _additional_attributes:String
-    fn __init__(inout self, ref[L]ui: Server, tag: String, style:String,_additional_attributes:String):
-        self.server = Pointer.address_of(ui)
+    fn __init__(out self, ref[L]ui: Server, tag: String, style:String,_additional_attributes:String):
+        self.server = Pointer(to=ui)
         self.tag = tag
         self.style = style
         self._additional_attributes = _additional_attributes
@@ -617,14 +615,14 @@ struct Window[
     var name: String
     var pos: Pointer[Position, LPOS]
     var titlecss: String
-    fn __init__(inout self, ref[L]ui: Server, name:String,ref[LPOS] pos: Position,titlecss:String):
-        self.server = Pointer.address_of(ui)
+    fn __init__(out self, ref[L]ui: Server, name:String,ref[LPOS] pos: Position,titlecss:String):
+        self.server = Pointer(to=ui)
         self.name = name
-        self.pos = Pointer.address_of(pos)
+        self.pos = Pointer(to=pos)
         self.titlecss = titlecss
     fn __enter__(self) -> Pointer[Position, LPOS]:
         try:
-            var id = str(self.pos)#str(hash(self.name._as_ptr(),len(self.name)))
+            var id = String(self.pos)#str(hash(self.name._as_ptr(),len(self.name)))
             var positions:String = ""
             var req = self.server[].request
 
@@ -638,21 +636,21 @@ struct Window[
                 self.server[].request = List[String]()
             elif req and req[1].startswith("/window_"+id):
                     var val = req[1].split("/window_"+id)[1].split("/")
-                    self.pos[].x += atol(str(val[1])) #todo try: block for atol
-                    self.pos[].y += atol(str(val[2]))
+                    self.pos[].x += atol(String(val[1])) #todo try: block for atol
+                    self.pos[].y += atol(String(val[2]))
                     self.server[].request = List[String]()
             elif req and req[1].startswith("/click_/window_toggle_"+id):
                 self.pos[].opened = not self.pos[].opened
                 self.server[].request = List[String]()
-            positions += "left:"+str(self.pos[].x)+"px;"
-            positions += "top:"+str(self.pos[].y)+"px;"
-            var scale:String = str(self.pos[].scale)
+            positions += "left:"+String(self.pos[].x)+"px;"
+            positions += "top:"+String(self.pos[].y)+"px;"
+            var scale:String = String(self.pos[].scale)
             self.server[].response += "<div  ondragstart='drag(event)' class='Window_' style='transform-origin: 0% 0% 0px;transform:scale("+scale+");" +positions+ ";' id='"+id +"'>"
-            self.server[].response += "<div data-zoomlevel='1.O' onwheel='zoom_window(event)' onmouseover='DragOn(event)'  onmouseout='DragOff(event)' data-istitlebar='true' class='WindowTitle_' style='cursor:grab;"+self.titlecss+"'><span data-click='true' style='cursor:s-resize;' id='/window_toggle_"+str(id)+"'>➖</span> ❌ " + self.name + "&nbsp;</div>"
+            self.server[].response += "<div data-zoomlevel='1.O' onwheel='zoom_window(event)' onmouseover='DragOn(event)'  onmouseout='DragOff(event)' data-istitlebar='true' class='WindowTitle_' style='cursor:grab;"+self.titlecss+"'><span data-click='true' style='cursor:s-resize;' id='/window_toggle_"+String(id)+"'>➖</span> ❌ " + self.name + "&nbsp;</div>"
             var opened = String(" ")
             if not self.pos[].opened: opened = "hidden"
             self.server[].response += "<div class='WindowContent_' style='' "+opened+">"
-        except e: print("Window __enter__ widget:"+str(e))
+        except e: print("Window __enter__ widget:"+String(e))
         return self.pos
     fn __exit__( self): _=self.close()
     fn close(self) -> Bool:
@@ -660,17 +658,17 @@ struct Window[
         return True
     fn __exit__( self, err:Error)->Bool: return self.close()
 
-alias CSS_T=Variant[StringLiteral,Int]
+alias CSS_T=Variant[String,Int]
 fn CSS(**kwargs: CSS_T) -> String:
     var res:String =";"
     try:
         for i in kwargs:
             var kw=i[]
-            if kwargs[kw].isa[StringLiteral]():
+            if kwargs[kw].isa[String]():
                 res+= kw+":"
-                res+= String(kwargs[kw].take[StringLiteral]()) +";"
+                res+= String(kwargs[kw].take[String]()) +";"
             if kwargs[kw].isa[Int]():
                 res+= kw+":"
-                res+= str(kwargs[kw].take[Int]()) +";"
-    except e: print("CSS function"+str(e))
+                res+= String(kwargs[kw].take[Int]()) +";"
+    except e: print("CSS function"+String(e))
     return res

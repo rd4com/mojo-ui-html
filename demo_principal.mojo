@@ -17,7 +17,7 @@ def main():
     POS4 = Position(512,16)
 
     combovalues = List[String]()
-    for i in range(5): combovalues.append("Value "+str(i))
+    for i in range(5): combovalues.append("Value "+String(i))
     selection = 1
 
     while GUI.NeedNewRendition():
@@ -41,7 +41,7 @@ def main():
                 GUI.Text("Content")
 
         with GUI.Window("More widgets",POS4):
-            GUI.TextChoice("Multi Choice",multichoicevalue,"First","Second")
+            GUI.TextChoice("Multi Choice", multichoicevalue,"First","Second")
             GUI.Ticker("⬅️♾️ cycling left in a 128 pixels area",width=128)
 
             with GUI.Table():
@@ -49,14 +49,14 @@ def main():
                     with GUI.Row():
                         for c in range(3): 
                             with GUI.Cell():
-                                GUI.Text(str(r) + "," + str(c))
+                                GUI.Text(String(r) + "," + String(c))
     
             with GUI.ScrollableArea(123):
                 GUI.Text(GUI.Bold("ScrollableArea()"))
                 GUI.ColorSelector(colorvalue)
                 GUI.NewLine()
                 GUI.DateSelector(datevalue) #⚠️ format is unclear (see readme.md)
-                for i in range(10): GUI.Text(str(i))
+                for i in range(10): GUI.Text(String(i))
         
 
         with GUI.Window("Values",POS2,CSSTitle="background-color:"+colorvalue): 
@@ -69,4 +69,4 @@ def main():
             with GUI.Tag("div","padding:0px;margin:0px;font-size:100"):
                 GUI.Text("❤️‍🔥")
             GUI.Button("ok",CSS="font-size:32;background-color:"+colorvalue)
-            
+          

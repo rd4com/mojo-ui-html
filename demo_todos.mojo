@@ -9,7 +9,7 @@ def main():
     var pos = Position(256, 128)
     while GUI.NeedNewRendition():
         with GUI.Window("Todo app",pos):
-            GUI.Text(str(len(todos)))
+            GUI.Text(String(len(todos)))
             with GUI.ScrollableArea(128):
                 for t in todos: 
                     GUI.Text(t[])

@@ -14,21 +14,21 @@ def main():
     while GUI.NeedNewRendition():
         with GUI.Window(message,pos,"background-color:"+c):
             GUI.Text('s = '+s)
-            GUI.Text('i = '+str(i))
-            GUI.Text('b = '+str(b))
-            GUI.Text('i2= '+str(i2))
-            GUI.Text('t = '+str(t))
-            GUI.Text('c = '+str(c))
+            GUI.Text('i = '+String(i))
+            GUI.Text('b = '+String(b))
+            GUI.Text('i2= '+String(i2))
+            GUI.Text('t = '+String(t))
+            GUI.Text('c = '+String(c))
 
             if GUI.ComboBox("Choice",i,"a","b"):
-                message = "ComboBox: "+str(i)
+                message = "ComboBox: "+String(i)
             if GUI.Button("Click"): message = "Click"
             if GUI.TextInput("Edit",s):
                 message = "TextInput: "+ s
             if GUI.Toggle(b,"CheckBox"):
-                message = "CheckBox: "+ str(b)
+                message = "CheckBox: "+ String(b)
             if GUI.Slider("Slider",i2):
-                message = "Slider: "+ str(i2)
+                message = "Slider: "+ String(i2)
             if GUI.TimeSelector(t):
                 message = "TimeSelector: "+t
             if GUI.ColorSelector(c):

@@ -1,11 +1,12 @@
 #### 🆕 
 
 - `mojoproject.toml` for `magic` !
-- 🔁 Updated for `25.1.0` 🔥!
+- 🔁 Updated for `25.3.0` 🔥!
 
 &nbsp;
 
 #### ➕ Smaller changes/new features
+- UTF8 for inputs need rework
 - UI remember scroll position between events and refreshes
 - Any window can be minimized/expanded into/from a titlebar with the `➖` button
 - Move some parameters from `Server` to `param_get_env`
