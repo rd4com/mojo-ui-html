@@ -328,10 +328,9 @@ struct Server:
             else:
                 if self.request and self.request[1].startswith(tmp2):
                     var tmp3 = self.request[1].split(tmp2)[1].split("-")
-                    # var tmp4 = List[UInt8, True](capacity=len(tmp3))
                     val = String()
                     for i in range(len(tmp3)):
-                        val += chr(Int(tmp3[i])) #Todo: test this new change
+                        val.append_byte(Int(tmp3[i]))
                     self.should_re_render()
                     self.SetNoneRequest()
                     ret_val = True
